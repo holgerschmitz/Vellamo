@@ -8,6 +8,7 @@
 #ifndef MPULSE_DIAGNOSTIC_HPP_
 #define MPULSE_DIAGNOSTIC_HPP_
 
+#include "vellamo.hpp"
 #include <schnek/diagnostic/diagnostic.hpp>
 #include <schnek/diagnostic/hdfdiagnostic.hpp>
 

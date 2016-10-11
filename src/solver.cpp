@@ -5,8 +5,11 @@
  *      Author: Holger Schmitz
  */
 
+#include "solver.hpp"
+
 #include <algorithm>
 #include <cmath>
+#include <boost/make_shared.hpp>
 
 static const double adiabaticGamma = 5.0/3.0;
 
@@ -16,20 +19,18 @@ void Solver::init()
 
   retrieveData("Mx", Mx);
   retrieveData("My", My);
-  retrieveData("Mz", Mz);
 
   retrieveData("E", E);
 }
 
 void Solver::postInit()
 {
-  *Rho_s = *Rho;
+  Rho_s = boost::make_shared<Field>(*Rho);
 
-  *Mx_s = *Mx;
-  *My_s = *My;
-  *Mz_s = *Mz;
+  Mx_s =  boost::make_shared<Field>(*Mx);
+  My_s =  boost::make_shared<Field>(*My);
 
-  *E_s  = *E;
+  E_s  =  boost::make_shared<Field>(*E);
 
   dx = Vellamo::getDx();
 }
@@ -48,7 +49,7 @@ inline double Solver::speed_cf(double rho, double p)
 
 inline double Solver::eqn_state_ideal_gas(FluidValues& u)
 {
-  double internal_energy = std::max(0.0, u[C_E] - 0.5*(u[C_MX]*u[C_MX] + u[C_MY]*u[C_MY] + u[C_MZ]*u[C_MZ])/u[C_RHO]);
+  double internal_energy = std::max(0.0, u[C_E] - 0.5*(u[C_MX]*u[C_MX] + u[C_MY]*u[C_MY])/u[C_RHO]);
 
   return (adiabaticGamma-1.0)*internal_energy;
 }
@@ -70,24 +71,22 @@ void Solver::minmax_local_speed(int d, FluidValues uW, FluidValues uE, double pW
 
 void Solver::reconstruct_x(int i, int j, int dir, FluidValues& u)
 {
-  u[C_RHO] = Rho(i,j) + dir*van_leer((*Rho)(i,j), (*Rho)(i+1,j), (*Rho)(i-1,j));
+  u[C_RHO] = (*Rho)(i,j) + dir*van_leer((*Rho)(i,j), (*Rho)(i+1,j), (*Rho)(i-1,j));
 
-  u[C_MX]   = Mx(i,j) + dir*van_leer((*Mx)(i,j), (*Mx)(i+1,j), (*Mx)(i-1,j));
-  u[C_MY]   = My(i,j) + dir*van_leer((*My)(i,j), (*My)(i+1,j), (*My)(i-1,j));
-  u[C_MZ]   = Mz(i,j) + dir*van_leer((*Mz)(i,j), (*Mz)(i+1,j), (*Mz)(i-1,j));
+  u[C_MX]   = (*Mx)(i,j) + dir*van_leer((*Mx)(i,j), (*Mx)(i+1,j), (*Mx)(i-1,j));
+  u[C_MY]   = (*My)(i,j) + dir*van_leer((*My)(i,j), (*My)(i+1,j), (*My)(i-1,j));
 
-  u[C_E]   = E(i,j) + dir*van_leer((*E)(i,j), (*E)(i+1,j), (*E)(i-1,j));
+  u[C_E]   = (*E)(i,j) + dir*van_leer((*E)(i,j), (*E)(i+1,j), (*E)(i-1,j));
 }
 
 void Solver::reconstruct_y(int i, int j, int dir, FluidValues& u)
 {
-  u[C_RHO] = Rho(i,j) + dir*van_leer((*Rho)(i,j), (*Rho)(i,j+1), (*Rho)(i,j-1));
+  u[C_RHO] = (*Rho)(i,j) + dir*van_leer((*Rho)(i,j), (*Rho)(i,j+1), (*Rho)(i,j-1));
 
-  u[C_MX]   = Mx(i,j) + dir*van_leer((*Mx)(i,j), (*Mx)(i,j+1), (*Mx)(i,j-1));
-  u[C_MY]   = My(i,j) + dir*van_leer((*My)(i,j), (*My)(i,j+1), (*My)(i,j-1));
-  u[C_MZ]   = Mz(i,j) + dir*van_leer((*Mz)(i,j), (*Mz)(i,j+1), (*Mz)(i,j-1));
+  u[C_MX]   = (*Mx)(i,j) + dir*van_leer((*Mx)(i,j), (*Mx)(i,j+1), (*Mx)(i,j-1));
+  u[C_MY]   = (*My)(i,j) + dir*van_leer((*My)(i,j), (*My)(i,j+1), (*My)(i,j-1));
 
-  u[C_E]   = E(i,j) + dir*van_leer((*E)(i,j), (*E)(i,j+1), (*E)(i,j-1));
+  u[C_E]   = (*E)(i,j) + dir*van_leer((*E)(i,j), (*E)(i,j+1), (*E)(i,j-1));
 }
 
 void Solver::flux_function_x(FluidValues u, double p, FluidValues &f)
@@ -95,7 +94,6 @@ void Solver::flux_function_x(FluidValues u, double p, FluidValues &f)
   double rho = u[C_RHO];
   double mx = u[C_MX];
   double my = u[C_MY];
-  double mz = u[C_MZ];
   double engy = u[C_E];
 
   f[C_RHO]   = mx;
@@ -109,7 +107,6 @@ void Solver::flux_function_y(FluidValues u, double p, FluidValues &f)
   double rho = u[C_RHO];
   double mx = u[C_MX];
   double my = u[C_MY];
-  double mz = u[C_MZ];
   double engy = u[C_E];
 
   f[C_RHO]   = my;
@@ -181,7 +178,7 @@ inline void Solver::hydroRhs(Index p, FluidValues& dudt)
   flux_y(p[0], p[1]-1, fmy);
   flux_y(p[0],   p[1], fpy);
 
-  dudt = -(fpx-fmx)/dx[0] - (fpy-fmy)/dx[1];
+  dudt = -1 * (fpx-fmx)/dx[0] - (fpy-fmy)/dx[1];
 }
 
 
@@ -189,22 +186,20 @@ void Solver::rungeKuttaStep(double dt)
 {
   schnek::DomainSubdivision<Field> &subdivision = Vellamo::getSubdivision();
 
-  Index lo = Rho->getInnerLo();
-  Index hi = Rho->getInnerHi();
-  Index p;
-  FluidValues dudt;
-
   Field &Rho = *(this->Rho);
   Field &Mx = *(this->Mx);
   Field &My = *(this->My);
-  Field &Mz = *(this->Mz);
   Field &E = *(this->E);
 
   Field &Rho_s = *(this->Rho_s);
   Field &Mx_s = *(this->Mx_s);
   Field &My_s = *(this->My_s);
-  Field &Mz_s = *(this->Mz_s);
   Field &E_s = *(this->E_s);
+
+  Index lo = Rho.getInnerLo();
+  Index hi = Rho.getInnerHi();
+  Index p;
+  FluidValues dudt;
 
   // First step
   for (p[0]=lo[0]; p[0]<=hi[0]; ++p[0])
@@ -216,7 +211,6 @@ void Solver::rungeKuttaStep(double dt)
 
       Mx_s(p[0],p[1]) = Mx(p[0],p[1]) + dt*dudt[C_MX];
       My_s(p[0],p[1]) = My(p[0],p[1]) + dt*dudt[C_MY];
-      Mz_s(p[0],p[1]) = Mz(p[0],p[1]) + dt*dudt[C_MZ];
 
       E_s(p[0],p[1]) = E(p[0],p[1]) + dt*dudt[C_E];
     }
@@ -229,7 +223,6 @@ void Solver::rungeKuttaStep(double dt)
 
         std::swap(Mx(p[0],p[1]), Mx_s(p[0],p[1]));
         std::swap(My(p[0],p[1]), My_s(p[0],p[1]));
-        std::swap(Mz(p[0],p[1]), Mz_s(p[0],p[1]));
 
         std::swap(E(p[0],p[1]), E_s(p[0],p[1]));
       }
@@ -238,7 +231,6 @@ void Solver::rungeKuttaStep(double dt)
 
   subdivision.exchange(Mx);
   subdivision.exchange(My);
-  subdivision.exchange(Mz);
 
   subdivision.exchange(E);
 
@@ -252,7 +244,6 @@ void Solver::rungeKuttaStep(double dt)
 
       Mx_s(p[0],p[1]) = 0.5*(Mx(p[0],p[1]) + Mx_s(p[0],p[1]) + dt*dudt[C_MX]);
       My_s(p[0],p[1]) = 0.5*(My(p[0],p[1]) + My_s(p[0],p[1]) + dt*dudt[C_MY]);
-      Mz_s(p[0],p[1]) = 0.5*(Mz(p[0],p[1]) + Mz_s(p[0],p[1]) + dt*dudt[C_MZ]);
 
       E_s(p[0],p[1]) = 0.5*(E(p[0],p[1]) + Rho_s(p[0],p[1]) + dt*dudt[C_E]);
     }
@@ -261,23 +252,56 @@ void Solver::rungeKuttaStep(double dt)
   // Copy starred back into unstarred fields
 
   for (p[0]=lo[0]; p[0]<=hi[0]; ++p[0])
-        for (p[1]=lo[1]; p[1]<=hi[1]; ++p[1])
-        {
-          Rho(p[0],p[1]) = Rho_s(p[0],p[1]);
+    for (p[1]=lo[1]; p[1]<=hi[1]; ++p[1])
+    {
+      Rho(p[0],p[1]) = Rho_s(p[0],p[1]);
 
-          Mx(p[0],p[1]) = Mx_s(p[0],p[1]);
-          My(p[0],p[1]) = My_s(p[0],p[1]);
-          Mz(p[0],p[1]) = Mz_s(p[0],p[1]);
+      Mx(p[0],p[1]) = Mx_s(p[0],p[1]);
+      My(p[0],p[1]) = My_s(p[0],p[1]);
 
-          E(p[0],p[1]) = E_s(p[0],p[1]);
-        }
+      E(p[0],p[1]) = E_s(p[0],p[1]);
+    }
 
   subdivision.exchange(Rho);
 
   subdivision.exchange(Mx);
   subdivision.exchange(My);
-  subdivision.exchange(Mz);
 
   subdivision.exchange(E);
 }
 
+double Solver::maxDt()
+{
+  schnek::DomainSubdivision<Field> &subdivision = Vellamo::getSubdivision();
+
+  Field &Rho = *(this->Rho);
+  Field &Mx = *(this->Mx);
+  Field &My = *(this->My);
+  Field &E = *(this->E);
+
+  Index lo = Rho.getInnerLo();
+  Index hi = Rho.getInnerHi();
+  FluidValues u;
+  double p;
+  double max_speed = 0.0;
+
+  double min_dx = std::min(dx[0], dx[1]);
+
+  for (int i=lo[0]; i<=hi[0]; ++i)
+    for (int j=lo[1]; j<=hi[1]; ++j)
+    {
+      u[C_RHO]    = Rho(i,j);
+      u[C_MX]    = Mx(i,j);
+      u[C_MY]    = My(i,j);
+      u[C_E] = E(i,j);
+
+      p = eqn_state_ideal_gas(u);
+
+      double v_max = std::max(fabs(u[C_MX]),fabs(u[C_MY]))/u[C_RHO];
+
+      max_speed = std::max(max_speed,speed_cf(u[C_RHO], p)+v_max);
+    }
+
+  max_speed = subdivision.maxReduce(max_speed);
+  return min_dx/max_speed;
+}

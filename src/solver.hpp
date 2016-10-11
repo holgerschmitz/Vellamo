@@ -8,6 +8,8 @@
 #ifndef MPULSE_FIELDSOLVER_H
 #define MPULSE_FIELDSOLVER_H
 
+#include "vellamo.hpp"
+
 #include <schnek/variables/blockcontainer.hpp>
 
 class Storage;
@@ -16,20 +18,19 @@ class Current;
 const int C_RHO = 0;
 const int C_MX  = 1;
 const int C_MY  = 2;
-const int C_MZ  = 3;
-const int C_E   = 4;
+const int C_E   = 3;
 
 class Solver : public schnek::ChildBlock<Solver>
 {
   public:
-    typedef schnek::Array<double, 5> FluidValues;
+    typedef schnek::Array<double, 4> FluidValues;
   private:
     pField Rho;
-    pField Mx, My, Mz;
+    pField Mx, My;
     pField E;
 
     pField Rho_s;
-    pField Mx_s, My_s, Mz_s;
+    pField Mx_s, My_s;
     pField E_s;
 
     Vector dx;
@@ -48,6 +49,7 @@ class Solver : public schnek::ChildBlock<Solver>
     void init();
     void postInit();
     void rungeKuttaStep(double dt);
+    double maxDt();
 };
 
 #endif

@@ -9,6 +9,7 @@
 #define MPULSE_MPULSE_H
 
 #include <schnek/grid.hpp>
+#include <schnek/variables.hpp>
 
 #ifdef NDEBUG
 #define MPulseGridChecker schnek::GridNoArgCheck
@@ -16,7 +17,7 @@
 #define MPulseGridChecker schnek::GridAssertCheck
 #endif
 
-static const size_t DIMENSION = 3;
+static const size_t DIMENSION = 2;
 
 typedef schnek::Array<int, DIMENSION> Index;
 typedef schnek::Array<double, DIMENSION> Vector;
@@ -27,6 +28,8 @@ typedef schnek::Array<bool, DIMENSION> Stagger;
 
 static const double clight = 299792458;
 static const double clight2 = clight*clight;
+
+class Solver;
 
 class Vellamo : public schnek::Block, schnek::BlockContainer<Solver>
 {
@@ -44,7 +47,7 @@ class Vellamo : public schnek::Block, schnek::BlockContainer<Solver>
     double tMax;
     Range innerRange;
     pField Rho;
-    pField Vx, Vy, Vz;
+    schnek::Array<pField, DIMENSION> M;
     pField E;
 
     schnek::MPICartSubdivision<Field> subdivision;
@@ -52,7 +55,7 @@ class Vellamo : public schnek::Block, schnek::BlockContainer<Solver>
     Vector x;
     schnek::Array<schnek::pParameter, DIMENSION> x_parameters;
     schnek::pParameter Rho_parameter;
-    schnek::Array<schnek::pParameter, DIMENSION> V_parameters;
+    schnek::Array<schnek::pParameter, DIMENSION> M_parameters;
     schnek::pParameter E_parameter;
     schnek::pParametersGroup spaceVars;
 

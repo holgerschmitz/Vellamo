@@ -5,7 +5,9 @@
  *      Author: Holger Schmitz
  */
 
+#include "vellamo.hpp"
 #include "diagnostic.hpp"
+#include "solver.hpp"
 
 #include <schnek/parser.hpp>
 #include <schnek/tools/fieldtools.hpp>
@@ -13,12 +15,16 @@
 #include <schnek/util/logger.hpp>
 
 #include <boost/foreach.hpp>
+#include <boost/make_shared.hpp>
+#include <boost/optional.hpp>
 
 #include <mpi.h>
 
 #include <fstream>
 #include <string>
 #include <unistd.h>
+
+Vellamo *Vellamo::instance;
 
 Vellamo::Vellamo()
 {
@@ -30,12 +36,12 @@ void Vellamo::initParameters(schnek::BlockParameters &parameters)
   parameters.addArrayParameter("N", gridSize, 100);
   parameters.addArrayParameter("L", size);
   parameters.addParameter("tMax", &tMax);
-  parameters.addParameter("cflFactor", &cflFactor, 0.99);
+  parameters.addParameter("cflFactor", &cflFactor, 0.5);
   x_parameters = parameters.addArrayParameter("", x, schnek::BlockParameters::readonly);
 
   Rho_parameter = parameters.addParameter("rho", &initRho, 0.0);
 
-  V_parameters = parameters.addArrayParameter("Vx", initV, 0.0);
+  M_parameters = parameters.addArrayParameter("Vx", initV, 0.0);
 
   E_parameter = parameters.addParameter("E", &initE, 0.0);
 
@@ -47,9 +53,8 @@ void Vellamo::registerData()
 {
   addData("Rho", Rho);
 
-  addData("Vx", Vx);
-  addData("Vy", Vy);
-  addData("Vz", Vz);
+  addData("Mx", M[0]);
+  addData("My", M[1]);
 
   addData("E", E);
 }
@@ -65,9 +70,8 @@ void Vellamo::fillValues()
   updater.addIndependentArray(x_parameters);
   schnek::fill_field(*Rho, x, initRho, updater, Rho_parameter);
 
-  schnek::fill_field(*Vx, x, initV[0], updater, V_parameters[0]);
-  schnek::fill_field(*Vy, x, initV[1], updater, V_parameters[1]);
-  schnek::fill_field(*Vz, x, initV[2], updater, V_parameters[2]);
+  schnek::fill_field(*M[0], x, initV[0], updater, M_parameters[0]);
+  schnek::fill_field(*M[1], x, initV[1], updater, M_parameters[1]);
 
   schnek::fill_field(*E, x, initE, updater, E_parameter);
 }
@@ -78,8 +82,10 @@ void Vellamo::init()
 
   subdivision.init(gridSize, 2);
 
-  dx = size / gridSize;
-  dt = cflFactor*std::min(dx[0],std::min(dx[1],dx[2]))/clight;
+  dx[0] = size[0] / gridSize[0];
+  dx[1] = size[1] / gridSize[1];
+
+  dt = cflFactor*std::min(dx[0],dx[1])/clight;
 
   Index low  = subdivision.getLo();
   Index high = subdivision.getHi();
@@ -93,22 +99,23 @@ void Vellamo::init()
 
   stagger = false;
 
-  Rho = new Field(lowIn, highIn, domainSize, stagger, 2);
+  Rho = boost::make_shared<Field>(lowIn, highIn, domainSize, stagger, 2);
 
-  Vx = new Field(lowIn, highIn, domainSize, stagger, 2);
-  Vy = new Field(lowIn, highIn, domainSize, stagger, 2);
-  Vz = new Field(lowIn, highIn, domainSize, stagger, 2);
+  M[0] = boost::make_shared<Field>(lowIn, highIn, domainSize, stagger, 2);
+  M[1] = boost::make_shared<Field>(lowIn, highIn, domainSize, stagger, 2);
 
-  E = new Field(lowIn, highIn, domainSize, stagger, 2);
+  E = boost::make_shared<Field>(lowIn, highIn, domainSize, stagger, 2);
 
   fillValues();
 }
 
 void Vellamo::execute()
 {
-  int step = 0;
-  double time = 0.0;
 
+  if (childBlocks().begin() == childBlocks().end())
+    throw schnek::VariableNotFoundException("At least one Fluid Solver needs to be specified");
+
+  double time = 0.0;
 
   while (time<=tMax)
   {
@@ -117,10 +124,20 @@ void Vellamo::execute()
     if (subdivision.master())
       schnek::Logger::instance().out() <<"Time "<< time << std::endl;
 
-      BOOST_FOREACH(Solver *f, getChildren())
-      {
-        f->rungeKuttaStep(dt);
-      }
+    boost::optional<double> maxDt;
+    BOOST_FOREACH(Solver *f, childBlocks())
+    {
+      maxDt = (maxDt)?std::min(maxDt.get(), f->maxDt()):f->maxDt();
+    }
+
+    dt = cflFactor*maxDt.get();
+
+    BOOST_FOREACH(Solver *f, childBlocks())
+    {
+      f->rungeKuttaStep(dt);
+    }
+
+    time += dt;
   }
 
   schnek::DiagnosticManager::instance().execute();

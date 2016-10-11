@@ -6,7 +6,6 @@
  */
 
 #include "diagnostic.hpp"
-#include "mpulse.hpp"
 
 FieldDiagnostic::IndexType FieldDiagnostic::getGlobalMin()
 {
@@ -15,7 +14,7 @@ FieldDiagnostic::IndexType FieldDiagnostic::getGlobalMin()
 
 FieldDiagnostic::IndexType FieldDiagnostic::getGlobalMax()
 {
-  return MPulse::getGlobalMax();
+  return Vellamo::getGlobalMax();
 }
 
 
