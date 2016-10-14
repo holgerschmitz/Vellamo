@@ -11,7 +11,7 @@ CXX     = mpic++
 CXXFLAGS = $(OFLAGS)
 
 SOURCES = src/diagnostic.cpp \
-  src/solver.cpp \
+  src/euler_solver.cpp \
   src/vellamo.cpp
 
 
@@ -20,8 +20,8 @@ OBJECTS = $(SOURCES:.cpp=.o)
 LDFLAGS = 
 
 LOADLIBS = -lhdf5 -lschnek -lm
-BINDIR = bin/
-OBJDIR = obj/
+BINDIR = bin
+OBJDIR = obj
 
 FULLTARGET = $(BINDIR)/$(TARGET)
 

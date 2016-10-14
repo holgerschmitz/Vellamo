@@ -7,7 +7,7 @@
 
 #include "vellamo.hpp"
 #include "diagnostic.hpp"
-#include "solver.hpp"
+#include "euler_solver.hpp"
 
 #include <schnek/parser.hpp>
 #include <schnek/tools/fieldtools.hpp>
@@ -153,7 +153,7 @@ void Vellamo::execute()
 
     BOOST_FOREACH(Solver *f, childBlocks())
     {
-      f->rungeKuttaStep(dt);
+      f->timeStep(dt);
     }
 
     time += dt;
@@ -173,7 +173,7 @@ int main (int argc, char** argv) {
 
     blocks.registerBlock("vellamo").setClass<Vellamo>();
     blocks("FieldDiag").setClass<FieldDiagnostic>();
-    blocks("CompressibleEuler").setClass<Solver>();
+    blocks("CompressibleEuler").setClass<EulerSolver>();
 
     blocks("vellamo").addChildren("FieldDiag")("CompressibleEuler");
 

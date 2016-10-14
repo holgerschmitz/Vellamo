@@ -5,7 +5,7 @@
  *      Author: Holger Schmitz
  */
 
-#include "solver.hpp"
+#include "euler_solver.hpp"
 
 #include <boost/make_shared.hpp>
 
@@ -15,7 +15,7 @@
 
 static const double adiabaticGamma = 5.0/3.0;
 
-void Solver::init()
+void EulerSolver::init()
 {
   retrieveData("Rho", Rho);
 
@@ -25,7 +25,7 @@ void Solver::init()
   retrieveData("E", E);
 }
 
-void Solver::postInit()
+void EulerSolver::postInit()
 {
   Rho_s = boost::make_shared<Field>(*Rho);
 
@@ -37,7 +37,7 @@ void Solver::postInit()
   dx = Vellamo::getDx();
 }
 
-inline void Solver::checkFluid(const FluidValues &u)
+inline void EulerSolver::checkFluid(const FluidValues &u)
 {
   return;
 
@@ -48,26 +48,26 @@ inline void Solver::checkFluid(const FluidValues &u)
     }
 }
 
-inline double Solver::van_leer(double u, double up, double um)
+inline double EulerSolver::van_leer(double u, double up, double um)
 {
   double du = (up-u)*(u-um);
 
   return (du>0.0)?du/(up-um):0.0;
 }
 
-inline double Solver::speed_cf(double rho, double p)
+inline double EulerSolver::speed_cf(double rho, double p)
 {
  return 0.5*sqrt(4.0*adiabaticGamma*fabs(p)/rho);
 }
 
-inline double Solver::eqn_state_ideal_gas(FluidValues& u)
+inline double EulerSolver::eqn_state_ideal_gas(FluidValues& u)
 {
   double internal_energy = std::max(0.0, u[C_E] - 0.5*(u[C_MX]*u[C_MX] + u[C_MY]*u[C_MY])/u[C_RHO]);
 
   return (adiabaticGamma-1.0)*internal_energy;
 }
 
-void Solver::minmax_local_speed(int d, FluidValues uW, FluidValues uE, double pW, double pE, double &ap, double &am)
+void EulerSolver::minmax_local_speed(int d, FluidValues uW, FluidValues uE, double pW, double pE, double &ap, double &am)
 {
   double mW, mE;
   double cfW, cfE;
@@ -82,7 +82,7 @@ void Solver::minmax_local_speed(int d, FluidValues uW, FluidValues uE, double pW
   am = std::min( (mW-cfW), std::min( (mE-cfE), 0.0 ));
 }
 
-void Solver::reconstruct_x(int i, int j, int dir, FluidValues& u)
+void EulerSolver::reconstruct_x(int i, int j, int dir, FluidValues& u)
 {
   u[C_RHO] = (*Rho)(i,j) + dir*van_leer((*Rho)(i,j), (*Rho)(i+1,j), (*Rho)(i-1,j));
 
@@ -92,7 +92,7 @@ void Solver::reconstruct_x(int i, int j, int dir, FluidValues& u)
   u[C_E]   = (*E)(i,j) + dir*van_leer((*E)(i,j), (*E)(i+1,j), (*E)(i-1,j));
 }
 
-void Solver::reconstruct_y(int i, int j, int dir, FluidValues& u)
+void EulerSolver::reconstruct_y(int i, int j, int dir, FluidValues& u)
 {
   u[C_RHO] = (*Rho)(i,j) + dir*van_leer((*Rho)(i,j), (*Rho)(i,j+1), (*Rho)(i,j-1));
 
@@ -102,7 +102,7 @@ void Solver::reconstruct_y(int i, int j, int dir, FluidValues& u)
   u[C_E]   = (*E)(i,j) + dir*van_leer((*E)(i,j), (*E)(i,j+1), (*E)(i,j-1));
 }
 
-void Solver::flux_function_x(FluidValues u, double p, FluidValues &f)
+void EulerSolver::flux_function_x(FluidValues u, double p, FluidValues &f)
 {
   double rho = u[C_RHO];
   double mx = u[C_MX];
@@ -115,7 +115,7 @@ void Solver::flux_function_x(FluidValues u, double p, FluidValues &f)
   f[C_MY]    = mx*my/rho;
 }
 
-void Solver::flux_function_y(FluidValues u, double p, FluidValues &f)
+void EulerSolver::flux_function_y(FluidValues u, double p, FluidValues &f)
 {
   double rho = u[C_RHO];
   double mx = u[C_MX];
@@ -128,7 +128,7 @@ void Solver::flux_function_y(FluidValues u, double p, FluidValues &f)
   f[C_MY]    = my*my/rho + p;
 }
 
-inline void Solver::flux_x(int i, int j, FluidValues& flux)
+inline void EulerSolver::flux_x(int i, int j, FluidValues& flux)
 {
   FluidValues uW, uE;
   double ap, am;
@@ -160,7 +160,7 @@ inline void Solver::flux_x(int i, int j, FluidValues& flux)
   checkFluid(flux);
 }
 
-inline void Solver::flux_y(int i, int j, FluidValues& flux)
+inline void EulerSolver::flux_y(int i, int j, FluidValues& flux)
 {
   FluidValues uW, uE;
   double ap, am;
@@ -192,7 +192,7 @@ inline void Solver::flux_y(int i, int j, FluidValues& flux)
   checkFluid(flux);
 }
 
-inline void Solver::hydroRhs(Index p, FluidValues& dudt)
+inline void EulerSolver::hydroRhs(Index p, FluidValues& dudt)
 {
   FluidValues fmx, fpx;
   FluidValues fmy, fpy;
@@ -208,7 +208,7 @@ inline void Solver::hydroRhs(Index p, FluidValues& dudt)
 }
 
 
-void Solver::rungeKuttaStep(double dt)
+void EulerSolver::timeStep(double dt)
 {
   schnek::DomainSubdivision<Field> &subdivision = Vellamo::getSubdivision();
 
@@ -286,7 +286,7 @@ void Solver::rungeKuttaStep(double dt)
   subdivision.exchange(E);
 }
 
-double Solver::maxDt()
+double EulerSolver::maxDt()
 {
   schnek::DomainSubdivision<Field> &subdivision = Vellamo::getSubdivision();
 

@@ -5,10 +5,11 @@
  *      Author: Holger Schmitz
  */
 
-#ifndef MPULSE_FIELDSOLVER_H
-#define MPULSE_FIELDSOLVER_H
+#ifndef MPULSE_EULER_SOLVER_H
+#define MPULSE_EULER_SOLVER_H
 
 #include "vellamo.hpp"
+#include "solver.hpp"
 
 #include <schnek/variables/blockcontainer.hpp>
 
@@ -20,7 +21,7 @@ const int C_MX  = 1;
 const int C_MY  = 2;
 const int C_E   = 3;
 
-class Solver : public schnek::ChildBlock<Solver>
+class EulerSolver: public Solver
 {
   public:
     typedef schnek::Array<double, 4> FluidValues;
@@ -50,8 +51,8 @@ class Solver : public schnek::ChildBlock<Solver>
   public:
     void init();
     void postInit();
-    void rungeKuttaStep(double dt);
+    void timeStep(double dt);
     double maxDt();
 };
 
-#endif
+#endif // MPULSE_EULER_SOLVER_H
