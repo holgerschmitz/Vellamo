@@ -24,6 +24,22 @@
 #include <string>
 #include <unistd.h>
 
+
+double step(double x, double x0)
+{
+  return (x>=x0)?1.0:0.0;
+}
+
+double stepi(double x, double x0)
+{
+  return (x>=x0)?0.0:1.0;
+}
+
+double box(double x, double xmin, double xmax)
+{
+  return ((x>=xmin)&&(x<xmax))?1.0:0.0;
+}
+
 Vellamo *Vellamo::instance;
 
 Vellamo::Vellamo()
@@ -39,9 +55,9 @@ void Vellamo::initParameters(schnek::BlockParameters &parameters)
   parameters.addParameter("cflFactor", &cflFactor, 0.5);
   x_parameters = parameters.addArrayParameter("", x, schnek::BlockParameters::readonly);
 
-  Rho_parameter = parameters.addParameter("rho", &initRho, 0.0);
+  Rho_parameter = parameters.addParameter("Rho", &initRho, 0.0);
 
-  M_parameters = parameters.addArrayParameter("Vx", initV, 0.0);
+  M_parameters = parameters.addArrayParameter("M", initM, 0.0);
 
   E_parameter = parameters.addParameter("E", &initE, 0.0);
 
@@ -70,15 +86,15 @@ void Vellamo::fillValues()
   updater.addIndependentArray(x_parameters);
   schnek::fill_field(*Rho, x, initRho, updater, Rho_parameter);
 
-  schnek::fill_field(*M[0], x, initV[0], updater, M_parameters[0]);
-  schnek::fill_field(*M[1], x, initV[1], updater, M_parameters[1]);
+  schnek::fill_field(*M[0], x, initM[0], updater, M_parameters[0]);
+  schnek::fill_field(*M[1], x, initM[1], updater, M_parameters[1]);
 
   schnek::fill_field(*E, x, initE, updater, E_parameter);
 }
 
 void Vellamo::init()
 {
-  globalMax = gridSize - 2;
+  globalMax = gridSize-1;
 
   subdivision.init(gridSize, 2);
 
@@ -94,7 +110,7 @@ void Vellamo::init()
   Index highIn = subdivision.getInnerHi();
 
   innerRange = Range(lowIn, highIn);
-  schnek::Range<double, DIMENSION> domainSize(schnek::Array<double, DIMENSION>(lowIn[0],lowIn[1]), schnek::Array<double, DIMENSION>(highIn[0],highIn[1]));
+  schnek::Range<double, DIMENSION> domainSize(schnek::Array<double, DIMENSION>(0,0), size);
   schnek::Array<bool, DIMENSION> stagger;
 
   stagger = false;
@@ -112,10 +128,13 @@ void Vellamo::init()
 void Vellamo::execute()
 {
 
-  if (childBlocks().begin() == childBlocks().end())
+  schnek::DiagnosticManager::instance().setTimeCounter(&timestep);
+
+  if (numChildren()==0)
     throw schnek::VariableNotFoundException("At least one Fluid Solver needs to be specified");
 
   double time = 0.0;
+  timestep = 0;
 
   while (time<=tMax)
   {
@@ -138,6 +157,7 @@ void Vellamo::execute()
     }
 
     time += dt;
+    ++timestep;
   }
 
   schnek::DiagnosticManager::instance().execute();
@@ -151,18 +171,21 @@ int main (int argc, char** argv) {
   {
     schnek::BlockClasses blocks;
 
-    blocks.registerBlock("mpulse").setClass<Vellamo>();
+    blocks.registerBlock("vellamo").setClass<Vellamo>();
     blocks("FieldDiag").setClass<FieldDiagnostic>();
+    blocks("CompressibleEuler").setClass<Solver>();
 
-    blocks("mpulse").addChildren("FieldDiag");
+    blocks("vellamo").addChildren("FieldDiag")("CompressibleEuler");
 
-    std::ifstream in("mpulse.setup");
-    if (!in) throw std::string("Could not open file 'mpulse.setup'");
+    std::ifstream in("vellamo.setup");
+    if (!in) throw std::string("Could not open file 'vellamo.setup'");
 
-    schnek::Parser P("mpulse", "mpulse", blocks);
+    schnek::Parser P("vellamo", "vellamo", blocks);
     registerCMath(P.getFunctionRegistry());
 
-    //P.getFunctionRegistry().registerFunction("random",randomRange);
+    P.getFunctionRegistry().registerFunction("step",step);
+    P.getFunctionRegistry().registerFunction("stepi",stepi);
+    P.getFunctionRegistry().registerFunction("box",box);
 
     schnek::pBlock application = P.parse(in);
 

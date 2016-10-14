@@ -12,10 +12,10 @@
 #include <schnek/diagnostic/diagnostic.hpp>
 #include <schnek/diagnostic/hdfdiagnostic.hpp>
 
-class FieldDiagnostic : public schnek::HDFGridDiagnostic<Field, Field* >
+class FieldDiagnostic : public schnek::HDFGridDiagnostic<Field, pField>
 {
   protected:
-    typedef HDFGridDiagnostic<Field, Field* >::IndexType IndexType;
+    typedef HDFGridDiagnostic<Field, pField>::IndexType IndexType;
     IndexType getGlobalMin();
     IndexType getGlobalMax();
 };

@@ -7,9 +7,11 @@
 
 #include "solver.hpp"
 
+#include <boost/make_shared.hpp>
+
 #include <algorithm>
 #include <cmath>
-#include <boost/make_shared.hpp>
+#include <iostream>
 
 static const double adiabaticGamma = 5.0/3.0;
 
@@ -35,6 +37,17 @@ void Solver::postInit()
   dx = Vellamo::getDx();
 }
 
+inline void Solver::checkFluid(const FluidValues &u)
+{
+  return;
+
+  for (int i=0; i<4; ++i)
+    if (!(u[i]==u[i]) || !(0.0*u[i]==0.0*u[i]))
+    {
+      std::cerr << "NaN or Infinity\n";
+    }
+}
+
 inline double Solver::van_leer(double u, double up, double um)
 {
   double du = (up-u)*(u-um);
@@ -44,7 +57,7 @@ inline double Solver::van_leer(double u, double up, double um)
 
 inline double Solver::speed_cf(double rho, double p)
 {
- return 0.5*sqrt(4.0*adiabaticGamma*p/rho);
+ return 0.5*sqrt(4.0*adiabaticGamma*fabs(p)/rho);
 }
 
 inline double Solver::eqn_state_ideal_gas(FluidValues& u)
@@ -133,12 +146,18 @@ inline void Solver::flux_x(int i, int j, FluidValues& flux)
   // determine the minimum and maximum local speeds
   minmax_local_speed(0, uW, uE, pW, pE, ap, am);
 
+  if (ap==am) {
+    flux = 0.0;
+    return;
+  }
+
   // evaluate the flux function
   flux_function_x(uW, pW, fW);
   flux_function_x(uE, pE, fE);
 
   // assemble everything to calculate the flux
   flux = (ap*fE-am*fW + ap*am*(uW-uE))/(ap-am);
+  checkFluid(flux);
 }
 
 inline void Solver::flux_y(int i, int j, FluidValues& flux)
@@ -159,12 +178,18 @@ inline void Solver::flux_y(int i, int j, FluidValues& flux)
   // determine the minimum and maximum local speeds
   minmax_local_speed(1, uW, uE, pW, pE, ap, am);
 
+  if (ap==am) {
+    flux = 0.0;
+    return;
+  }
+
   // evaluate the flux function
   flux_function_x(uW, pW, fW);
   flux_function_x(uE, pE, fE);
 
   // assemble everything to calculate the flux
   flux = (ap*fE-am*fW + ap*am*(uW-uE))/(ap-am);
+  checkFluid(flux);
 }
 
 inline void Solver::hydroRhs(Index p, FluidValues& dudt)
@@ -179,6 +204,7 @@ inline void Solver::hydroRhs(Index p, FluidValues& dudt)
   flux_y(p[0],   p[1], fpy);
 
   dudt = -1 * (fpx-fmx)/dx[0] - (fpy-fmy)/dx[1];
+  checkFluid(dudt);
 }
 
 
@@ -208,10 +234,8 @@ void Solver::rungeKuttaStep(double dt)
       hydroRhs(p, dudt);
 
       Rho_s(p[0],p[1]) = Rho(p[0],p[1]) + dt*dudt[C_RHO];
-
       Mx_s(p[0],p[1]) = Mx(p[0],p[1]) + dt*dudt[C_MX];
       My_s(p[0],p[1]) = My(p[0],p[1]) + dt*dudt[C_MY];
-
       E_s(p[0],p[1]) = E(p[0],p[1]) + dt*dudt[C_E];
     }
 
@@ -220,18 +244,14 @@ void Solver::rungeKuttaStep(double dt)
       for (p[1]=lo[1]; p[1]<=hi[1]; ++p[1])
       {
         std::swap(Rho(p[0],p[1]), Rho_s(p[0],p[1]));
-
         std::swap(Mx(p[0],p[1]), Mx_s(p[0],p[1]));
         std::swap(My(p[0],p[1]), My_s(p[0],p[1]));
-
         std::swap(E(p[0],p[1]), E_s(p[0],p[1]));
       }
 
   subdivision.exchange(Rho);
-
   subdivision.exchange(Mx);
   subdivision.exchange(My);
-
   subdivision.exchange(E);
 
   // second step
@@ -241,11 +261,9 @@ void Solver::rungeKuttaStep(double dt)
       hydroRhs(p, dudt);
 
       Rho_s(p[0],p[1]) = 0.5*(Rho(p[0],p[1]) + Rho_s(p[0],p[1]) + dt*dudt[C_RHO]);
-
       Mx_s(p[0],p[1]) = 0.5*(Mx(p[0],p[1]) + Mx_s(p[0],p[1]) + dt*dudt[C_MX]);
       My_s(p[0],p[1]) = 0.5*(My(p[0],p[1]) + My_s(p[0],p[1]) + dt*dudt[C_MY]);
-
-      E_s(p[0],p[1]) = 0.5*(E(p[0],p[1]) + Rho_s(p[0],p[1]) + dt*dudt[C_E]);
+      E_s(p[0],p[1]) = 0.5*(E(p[0],p[1]) + E_s(p[0],p[1]) + dt*dudt[C_E]);
     }
 
 
@@ -255,10 +273,8 @@ void Solver::rungeKuttaStep(double dt)
     for (p[1]=lo[1]; p[1]<=hi[1]; ++p[1])
     {
       Rho(p[0],p[1]) = Rho_s(p[0],p[1]);
-
       Mx(p[0],p[1]) = Mx_s(p[0],p[1]);
       My(p[0],p[1]) = My_s(p[0],p[1]);
-
       E(p[0],p[1]) = E_s(p[0],p[1]);
     }
 

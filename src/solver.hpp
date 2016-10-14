@@ -45,6 +45,8 @@ class Solver : public schnek::ChildBlock<Solver>
     void flux_x(int i, int j, FluidValues &flux);
     void flux_y(int i, int j, FluidValues &flux);
     void hydroRhs(Index p, FluidValues &dudt);
+
+    void checkFluid(const FluidValues &dudt);
   public:
     void init();
     void postInit();

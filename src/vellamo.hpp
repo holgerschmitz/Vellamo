@@ -12,16 +12,16 @@
 #include <schnek/variables.hpp>
 
 #ifdef NDEBUG
-#define MPulseGridChecker schnek::GridNoArgCheck
+#define VellamoGridChecker schnek::GridNoArgCheck
 #else
-#define MPulseGridChecker schnek::GridAssertCheck
+#define VellamoGridChecker schnek::GridAssertCheck
 #endif
 
 static const size_t DIMENSION = 2;
 
 typedef schnek::Array<int, DIMENSION> Index;
 typedef schnek::Array<double, DIMENSION> Vector;
-typedef schnek::Field<double, DIMENSION> Field;
+typedef schnek::Field<double, DIMENSION,VellamoGridChecker> Field;
 typedef boost::shared_ptr<Field> pField;
 typedef schnek::Range<int, DIMENSION> Range;
 typedef schnek::Array<bool, DIMENSION> Stagger;
@@ -31,7 +31,7 @@ static const double clight2 = clight*clight;
 
 class Solver;
 
-class Vellamo : public schnek::Block, schnek::BlockContainer<Solver>
+class Vellamo : public schnek::Block, public schnek::BlockContainer<Solver>
 {
   private:
     static Vellamo *instance;
@@ -60,8 +60,10 @@ class Vellamo : public schnek::Block, schnek::BlockContainer<Solver>
     schnek::pParametersGroup spaceVars;
 
     double initRho;
-    Vector initV;
+    Vector initM;
     double initE;
+
+    int timestep;
   protected:
     void initParameters(schnek::BlockParameters &blockPars);
     void registerData();

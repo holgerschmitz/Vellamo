@@ -1,6 +1,7 @@
 
 TARGET=vellamo
 
+#OFLAGS  = -g -O0 -Wall
 OFLAGS  = -O3 -Wall
 
 INCLUDE = -I/usr/local/include
