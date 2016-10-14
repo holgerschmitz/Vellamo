@@ -7,7 +7,10 @@
 
 #include "vellamo.hpp"
 #include "diagnostic.hpp"
+
+#include "solver.hpp"
 #include "euler_solver.hpp"
+#include "boundary.hpp"
 
 #include <schnek/parser.hpp>
 #include <schnek/tools/fieldtools.hpp>
@@ -144,7 +147,7 @@ void Vellamo::execute()
       schnek::Logger::instance().out() <<"Time "<< time << std::endl;
 
     boost::optional<double> maxDt;
-    BOOST_FOREACH(Solver *f, childBlocks())
+    BOOST_FOREACH(Solver *f, schnek::BlockContainer<Solver>::childBlocks())
     {
       maxDt = (maxDt)?std::min(maxDt.get(), f->maxDt()):f->maxDt();
     }
@@ -175,7 +178,11 @@ int main (int argc, char** argv) {
     blocks("FieldDiag").setClass<FieldDiagnostic>();
     blocks("CompressibleEuler").setClass<EulerSolver>();
 
+    blocks("ZeroNeumannBoundary").setClass<ZeroNeumannBoundary>();
+
     blocks("vellamo").addChildren("FieldDiag")("CompressibleEuler");
+    blocks("CompressibleEuler").addChildren("ZeroNeumannBoundary");
+
 
     std::ifstream in("vellamo.setup");
     if (!in) throw std::string("Could not open file 'vellamo.setup'");

@@ -8,7 +8,9 @@
 #ifndef SOLVER_HPP_
 #define SOLVER_HPP_
 
-class Solver : public schnek::ChildBlock<Solver>
+class BoundaryCondition;
+
+class Solver : public schnek::ChildBlock<Solver>, public schnek::BlockContainer<BoundaryCondition>
 {
   public:
     virtual ~Solver() {}

@@ -35,6 +35,7 @@ class EulerSolver: public Solver
     pField E_s;
 
     Vector dx;
+
     double van_leer(double u, double up, double um);
     double speed_cf(double rho, double p);
     double eqn_state_ideal_gas(FluidValues &u);

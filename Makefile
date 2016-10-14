@@ -10,7 +10,8 @@ CXX     = mpic++
 
 CXXFLAGS = $(OFLAGS)
 
-SOURCES = src/diagnostic.cpp \
+SOURCES = src/boundary.cpp \
+  src/diagnostic.cpp \
   src/euler_solver.cpp \
   src/vellamo.cpp
 

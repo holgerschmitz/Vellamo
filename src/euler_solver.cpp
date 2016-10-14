@@ -7,13 +7,15 @@
 
 #include "euler_solver.hpp"
 
+#include "boundary.hpp"
+
 #include <boost/make_shared.hpp>
 
 #include <algorithm>
 #include <cmath>
 #include <iostream>
 
-static const double adiabaticGamma = 5.0/3.0;
+static const double adiabaticGamma = 1.4; //5.0/3.0;
 
 void EulerSolver::init()
 {
@@ -28,13 +30,13 @@ void EulerSolver::init()
 void EulerSolver::postInit()
 {
   Rho_s = boost::make_shared<Field>(*Rho);
-
   Mx_s =  boost::make_shared<Field>(*Mx);
   My_s =  boost::make_shared<Field>(*My);
-
   E_s  =  boost::make_shared<Field>(*E);
 
   dx = Vellamo::getDx();
+
+
 }
 
 inline void EulerSolver::checkFluid(const FluidValues &u)
@@ -57,8 +59,9 @@ inline double EulerSolver::van_leer(double u, double up, double um)
 
 inline double EulerSolver::speed_cf(double rho, double p)
 {
- return 0.5*sqrt(4.0*adiabaticGamma*fabs(p)/rho);
+ return (p>0.0)?(0.5*sqrt(4.0*adiabaticGamma*p/rho)):0.0;
 }
+
 
 inline double EulerSolver::eqn_state_ideal_gas(FluidValues& u)
 {
@@ -69,37 +72,33 @@ inline double EulerSolver::eqn_state_ideal_gas(FluidValues& u)
 
 void EulerSolver::minmax_local_speed(int d, FluidValues uW, FluidValues uE, double pW, double pE, double &ap, double &am)
 {
-  double mW, mE;
+  double vW, vE;
   double cfW, cfE;
 
-  mW = uW[C_MX+d];
-  mE = uE[C_MX+d];
+  vW = uW[C_MX+d] / uW[C_RHO];
+  vE = uE[C_MX+d] / uE[C_RHO];
 
   cfW = speed_cf(uW[C_RHO], pW);
   cfE = speed_cf(uE[C_RHO], pE);
 
-  ap = std::max( (mW+cfW), std::max( (mE+cfE), 0.0 ));
-  am = std::min( (mW-cfW), std::min( (mE-cfE), 0.0 ));
+  ap = std::max( (vW+cfW), std::max( (vE+cfE), 0.0 ));
+  am = std::min( (vW-cfW), std::min( (vE-cfE), 0.0 ));
 }
 
 void EulerSolver::reconstruct_x(int i, int j, int dir, FluidValues& u)
 {
   u[C_RHO] = (*Rho)(i,j) + dir*van_leer((*Rho)(i,j), (*Rho)(i+1,j), (*Rho)(i-1,j));
-
-  u[C_MX]   = (*Mx)(i,j) + dir*van_leer((*Mx)(i,j), (*Mx)(i+1,j), (*Mx)(i-1,j));
-  u[C_MY]   = (*My)(i,j) + dir*van_leer((*My)(i,j), (*My)(i+1,j), (*My)(i-1,j));
-
-  u[C_E]   = (*E)(i,j) + dir*van_leer((*E)(i,j), (*E)(i+1,j), (*E)(i-1,j));
+  u[C_MX]  = (*Mx)(i,j)  + dir*van_leer((*Mx)(i,j),  (*Mx)(i+1,j),  (*Mx)(i-1,j));
+  u[C_MY]  = (*My)(i,j)  + dir*van_leer((*My)(i,j),  (*My)(i+1,j),  (*My)(i-1,j));
+  u[C_E]   = (*E)(i,j)   + dir*van_leer((*E)(i,j),   (*E)(i+1,j),   (*E)(i-1,j));
 }
 
 void EulerSolver::reconstruct_y(int i, int j, int dir, FluidValues& u)
 {
   u[C_RHO] = (*Rho)(i,j) + dir*van_leer((*Rho)(i,j), (*Rho)(i,j+1), (*Rho)(i,j-1));
-
-  u[C_MX]   = (*Mx)(i,j) + dir*van_leer((*Mx)(i,j), (*Mx)(i,j+1), (*Mx)(i,j-1));
-  u[C_MY]   = (*My)(i,j) + dir*van_leer((*My)(i,j), (*My)(i,j+1), (*My)(i,j-1));
-
-  u[C_E]   = (*E)(i,j) + dir*van_leer((*E)(i,j), (*E)(i,j+1), (*E)(i,j-1));
+  u[C_MX]  = (*Mx)(i,j)  + dir*van_leer((*Mx)(i,j),  (*Mx)(i,j+1),  (*Mx)(i,j-1));
+  u[C_MY]  = (*My)(i,j)  + dir*van_leer((*My)(i,j),  (*My)(i,j+1),  (*My)(i,j-1));
+  u[C_E]   = (*E)(i,j)   + dir*van_leer((*E)(i,j),   (*E)(i,j+1),   (*E)(i,j-1));
 }
 
 void EulerSolver::flux_function_x(FluidValues u, double p, FluidValues &f)
@@ -110,7 +109,7 @@ void EulerSolver::flux_function_x(FluidValues u, double p, FluidValues &f)
   double engy = u[C_E];
 
   f[C_RHO]   = mx;
-  f[C_E]     = (engy + p)*mx;
+  f[C_E]     = (engy + p)*mx/rho;
   f[C_MX]    = mx*mx/rho + p;
   f[C_MY]    = mx*my/rho;
 }
@@ -123,7 +122,7 @@ void EulerSolver::flux_function_y(FluidValues u, double p, FluidValues &f)
   double engy = u[C_E];
 
   f[C_RHO]   = my;
-  f[C_E]     = (engy + p)*my;
+  f[C_E]     = (engy + p)*my/rho;
   f[C_MX]    = mx*my/rho;
   f[C_MY]    = my*my/rho + p;
 }
@@ -146,17 +145,17 @@ inline void EulerSolver::flux_x(int i, int j, FluidValues& flux)
   // determine the minimum and maximum local speeds
   minmax_local_speed(0, uW, uE, pW, pE, ap, am);
 
-  if (ap==am) {
-    flux = 0.0;
-    return;
-  }
+//  if (ap==am) {
+//    flux = 0.0;
+//    return;
+//  }
 
   // evaluate the flux function
   flux_function_x(uW, pW, fW);
   flux_function_x(uE, pE, fE);
 
   // assemble everything to calculate the flux
-  flux = (ap*fE-am*fW + ap*am*(uW-uE))/(ap-am);
+  flux = (ap*fE - am*fW + ap*am*(uW-uE))/(ap-am);
   checkFluid(flux);
 }
 
@@ -178,14 +177,14 @@ inline void EulerSolver::flux_y(int i, int j, FluidValues& flux)
   // determine the minimum and maximum local speeds
   minmax_local_speed(1, uW, uE, pW, pE, ap, am);
 
-  if (ap==am) {
-    flux = 0.0;
-    return;
-  }
+//  if (ap==am) {
+//    flux = 0.0;
+//    return;
+//  }
 
   // evaluate the flux function
-  flux_function_x(uW, pW, fW);
-  flux_function_x(uE, pE, fE);
+  flux_function_y(uW, pW, fW);
+  flux_function_y(uE, pE, fE);
 
   // assemble everything to calculate the flux
   flux = (ap*fE-am*fW + ap*am*(uW-uE))/(ap-am);
@@ -203,7 +202,7 @@ inline void EulerSolver::hydroRhs(Index p, FluidValues& dudt)
   flux_y(p[0], p[1]-1, fmy);
   flux_y(p[0],   p[1], fpy);
 
-  dudt = -1 * (fpx-fmx)/dx[0] - (fpy-fmy)/dx[1];
+  dudt = (fmx-fpx)/dx[0] + (fmy-fpy)/dx[1];
   checkFluid(dudt);
 }
 
@@ -234,9 +233,9 @@ void EulerSolver::timeStep(double dt)
       hydroRhs(p, dudt);
 
       Rho_s(p[0],p[1]) = Rho(p[0],p[1]) + dt*dudt[C_RHO];
-      Mx_s(p[0],p[1]) = Mx(p[0],p[1]) + dt*dudt[C_MX];
-      My_s(p[0],p[1]) = My(p[0],p[1]) + dt*dudt[C_MY];
-      E_s(p[0],p[1]) = E(p[0],p[1]) + dt*dudt[C_E];
+      Mx_s(p[0],p[1])  = Mx(p[0],p[1])  + dt*dudt[C_MX];
+      My_s(p[0],p[1])  = My(p[0],p[1])  + dt*dudt[C_MY];
+      E_s(p[0],p[1])   = E(p[0],p[1])   + dt*dudt[C_E];
     }
 
   // Swap starred fields and the unstarred arrays
@@ -244,15 +243,23 @@ void EulerSolver::timeStep(double dt)
       for (p[1]=lo[1]; p[1]<=hi[1]; ++p[1])
       {
         std::swap(Rho(p[0],p[1]), Rho_s(p[0],p[1]));
-        std::swap(Mx(p[0],p[1]), Mx_s(p[0],p[1]));
-        std::swap(My(p[0],p[1]), My_s(p[0],p[1]));
-        std::swap(E(p[0],p[1]), E_s(p[0],p[1]));
+        std::swap(Mx(p[0],p[1]) , Mx_s(p[0],p[1]));
+        std::swap(My(p[0],p[1]) , My_s(p[0],p[1]));
+        std::swap(E(p[0],p[1])  , E_s(p[0],p[1]));
       }
 
   subdivision.exchange(Rho);
   subdivision.exchange(Mx);
   subdivision.exchange(My);
   subdivision.exchange(E);
+
+  BOOST_FOREACH(BoundaryCondition *bc, schnek::BlockContainer<BoundaryCondition>::childBlocks())
+  {
+    bc->apply(Rho);
+    bc->apply(Mx);
+    bc->apply(My);
+    bc->apply(E);
+  }
 
   // second step
   for (p[0]=lo[0]; p[0]<=hi[0]; ++p[0])
@@ -261,9 +268,9 @@ void EulerSolver::timeStep(double dt)
       hydroRhs(p, dudt);
 
       Rho_s(p[0],p[1]) = 0.5*(Rho(p[0],p[1]) + Rho_s(p[0],p[1]) + dt*dudt[C_RHO]);
-      Mx_s(p[0],p[1]) = 0.5*(Mx(p[0],p[1]) + Mx_s(p[0],p[1]) + dt*dudt[C_MX]);
-      My_s(p[0],p[1]) = 0.5*(My(p[0],p[1]) + My_s(p[0],p[1]) + dt*dudt[C_MY]);
-      E_s(p[0],p[1]) = 0.5*(E(p[0],p[1]) + E_s(p[0],p[1]) + dt*dudt[C_E]);
+      Mx_s(p[0],p[1])  = 0.5*(Mx(p[0],p[1])  + Mx_s(p[0],p[1])  + dt*dudt[C_MX]);
+      My_s(p[0],p[1])  = 0.5*(My(p[0],p[1])  + My_s(p[0],p[1])  + dt*dudt[C_MY]);
+      E_s(p[0],p[1])   = 0.5*(E(p[0],p[1])   + E_s(p[0],p[1])   + dt*dudt[C_E]);
     }
 
 
@@ -279,11 +286,17 @@ void EulerSolver::timeStep(double dt)
     }
 
   subdivision.exchange(Rho);
-
   subdivision.exchange(Mx);
   subdivision.exchange(My);
-
   subdivision.exchange(E);
+
+  BOOST_FOREACH(BoundaryCondition *bc, schnek::BlockContainer<BoundaryCondition>::childBlocks())
+  {
+    bc->apply(Rho);
+    bc->apply(Mx);
+    bc->apply(My);
+    bc->apply(E);
+  }
 }
 
 double EulerSolver::maxDt()
