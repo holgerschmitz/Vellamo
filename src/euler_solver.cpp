@@ -255,10 +255,7 @@ void EulerSolver::timeStep(double dt)
 
   BOOST_FOREACH(BoundaryCondition *bc, schnek::BlockContainer<BoundaryCondition>::childBlocks())
   {
-    bc->apply(Rho);
-    bc->apply(Mx);
-    bc->apply(My);
-    bc->apply(E);
+    bc->apply(Rho, Mx, My, E);
   }
 
   // second step
@@ -292,10 +289,7 @@ void EulerSolver::timeStep(double dt)
 
   BOOST_FOREACH(BoundaryCondition *bc, schnek::BlockContainer<BoundaryCondition>::childBlocks())
   {
-    bc->apply(Rho);
-    bc->apply(Mx);
-    bc->apply(My);
-    bc->apply(E);
+    bc->apply(Rho, Mx, My, E);
   }
 }
 

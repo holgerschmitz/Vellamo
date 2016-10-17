@@ -178,10 +178,11 @@ int main (int argc, char** argv) {
     blocks("FieldDiag").setClass<FieldDiagnostic>();
     blocks("CompressibleEuler").setClass<EulerSolver>();
 
-    blocks("ZeroNeumannBoundary").setClass<ZeroNeumannBoundary>();
+    blocks("ZeroNeumannBoundary").setClass<ZeroNeumannBoundaryBlock>();
+    blocks("WallBoundary").setClass<WallBoundaryBlock>();
 
     blocks("vellamo").addChildren("FieldDiag")("CompressibleEuler");
-    blocks("CompressibleEuler").addChildren("ZeroNeumannBoundary");
+    blocks("CompressibleEuler").addChildren("ZeroNeumannBoundary")("WallBoundary");
 
 
     std::ifstream in("vellamo.setup");
