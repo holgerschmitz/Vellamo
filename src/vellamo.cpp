@@ -1,5 +1,5 @@
 /*
- * mpulse.cpp
+ * vellamo.cpp
  *
  *  Created on: 4 Oct 2016
  *      Author: Holger Schmitz
@@ -176,7 +176,7 @@ int main (int argc, char** argv) {
 
     blocks.registerBlock("vellamo").setClass<Vellamo>();
     blocks("FieldDiag").setClass<FieldDiagnostic>();
-    blocks("CompressibleEuler").setClass<EulerSolver>();
+    blocks("CompressibleEuler").setClass<AdiabaticSolver>();
 
     blocks("ZeroNeumannBoundary").setClass<ZeroNeumannBoundaryBlock>();
     blocks("WallBoundary").setClass<WallBoundaryBlock>();

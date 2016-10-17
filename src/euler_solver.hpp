@@ -5,8 +5,8 @@
  *      Author: Holger Schmitz
  */
 
-#ifndef MPULSE_EULER_SOLVER_H
-#define MPULSE_EULER_SOLVER_H
+#ifndef EULER_SOLVER_HPP_
+#define EULER_SOLVER_HPP_
 
 #include "vellamo.hpp"
 #include "solver.hpp"
@@ -21,7 +21,7 @@ const int C_MX  = 1;
 const int C_MY  = 2;
 const int C_E   = 3;
 
-class EulerSolver: public Solver
+class AdiabaticSolver: public Solver
 {
   public:
     typedef schnek::Array<double, 4> FluidValues;

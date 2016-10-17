@@ -5,8 +5,8 @@
  *      Author: Holger Schmitz
  */
 
-#ifndef MPULSE_DIAGNOSTIC_HPP_
-#define MPULSE_DIAGNOSTIC_HPP_
+#ifndef DIAGNOSTIC_HPP_
+#define DIAGNOSTIC_HPP_
 
 #include "vellamo.hpp"
 #include <schnek/diagnostic/diagnostic.hpp>

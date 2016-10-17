@@ -17,7 +17,7 @@
 
 static const double adiabaticGamma = 1.4; //5.0/3.0;
 
-void EulerSolver::init()
+void AdiabaticSolver::init()
 {
   retrieveData("Rho", Rho);
 
@@ -27,7 +27,7 @@ void EulerSolver::init()
   retrieveData("E", E);
 }
 
-void EulerSolver::postInit()
+void AdiabaticSolver::postInit()
 {
   Rho_s = boost::make_shared<Field>(*Rho);
   Mx_s =  boost::make_shared<Field>(*Mx);
@@ -39,7 +39,7 @@ void EulerSolver::postInit()
 
 }
 
-inline void EulerSolver::checkFluid(const FluidValues &u)
+inline void AdiabaticSolver::checkFluid(const FluidValues &u)
 {
   return;
 
@@ -50,27 +50,27 @@ inline void EulerSolver::checkFluid(const FluidValues &u)
     }
 }
 
-inline double EulerSolver::van_leer(double u, double up, double um)
+inline double AdiabaticSolver::van_leer(double u, double up, double um)
 {
   double du = (up-u)*(u-um);
 
   return (du>0.0)?du/(up-um):0.0;
 }
 
-inline double EulerSolver::speed_cf(double rho, double p)
+inline double AdiabaticSolver::speed_cf(double rho, double p)
 {
  return (p>0.0)?(0.5*sqrt(4.0*adiabaticGamma*p/rho)):0.0;
 }
 
 
-inline double EulerSolver::eqn_state_ideal_gas(FluidValues& u)
+inline double AdiabaticSolver::eqn_state_ideal_gas(FluidValues& u)
 {
   double internal_energy = std::max(0.0, u[C_E] - 0.5*(u[C_MX]*u[C_MX] + u[C_MY]*u[C_MY])/u[C_RHO]);
 
   return (adiabaticGamma-1.0)*internal_energy;
 }
 
-void EulerSolver::minmax_local_speed(int d, FluidValues uW, FluidValues uE, double pW, double pE, double &ap, double &am)
+void AdiabaticSolver::minmax_local_speed(int d, FluidValues uW, FluidValues uE, double pW, double pE, double &ap, double &am)
 {
   double vW, vE;
   double cfW, cfE;
@@ -85,7 +85,7 @@ void EulerSolver::minmax_local_speed(int d, FluidValues uW, FluidValues uE, doub
   am = std::min( (vW-cfW), std::min( (vE-cfE), 0.0 ));
 }
 
-void EulerSolver::reconstruct_x(int i, int j, int dir, FluidValues& u)
+void AdiabaticSolver::reconstruct_x(int i, int j, int dir, FluidValues& u)
 {
   u[C_RHO] = (*Rho)(i,j) + dir*van_leer((*Rho)(i,j), (*Rho)(i+1,j), (*Rho)(i-1,j));
   u[C_MX]  = (*Mx)(i,j)  + dir*van_leer((*Mx)(i,j),  (*Mx)(i+1,j),  (*Mx)(i-1,j));
@@ -93,7 +93,7 @@ void EulerSolver::reconstruct_x(int i, int j, int dir, FluidValues& u)
   u[C_E]   = (*E)(i,j)   + dir*van_leer((*E)(i,j),   (*E)(i+1,j),   (*E)(i-1,j));
 }
 
-void EulerSolver::reconstruct_y(int i, int j, int dir, FluidValues& u)
+void AdiabaticSolver::reconstruct_y(int i, int j, int dir, FluidValues& u)
 {
   u[C_RHO] = (*Rho)(i,j) + dir*van_leer((*Rho)(i,j), (*Rho)(i,j+1), (*Rho)(i,j-1));
   u[C_MX]  = (*Mx)(i,j)  + dir*van_leer((*Mx)(i,j),  (*Mx)(i,j+1),  (*Mx)(i,j-1));
@@ -101,7 +101,7 @@ void EulerSolver::reconstruct_y(int i, int j, int dir, FluidValues& u)
   u[C_E]   = (*E)(i,j)   + dir*van_leer((*E)(i,j),   (*E)(i,j+1),   (*E)(i,j-1));
 }
 
-void EulerSolver::flux_function_x(FluidValues u, double p, FluidValues &f)
+void AdiabaticSolver::flux_function_x(FluidValues u, double p, FluidValues &f)
 {
   double rho = u[C_RHO];
   double mx = u[C_MX];
@@ -114,7 +114,7 @@ void EulerSolver::flux_function_x(FluidValues u, double p, FluidValues &f)
   f[C_MY]    = mx*my/rho;
 }
 
-void EulerSolver::flux_function_y(FluidValues u, double p, FluidValues &f)
+void AdiabaticSolver::flux_function_y(FluidValues u, double p, FluidValues &f)
 {
   double rho = u[C_RHO];
   double mx = u[C_MX];
@@ -127,7 +127,7 @@ void EulerSolver::flux_function_y(FluidValues u, double p, FluidValues &f)
   f[C_MY]    = my*my/rho + p;
 }
 
-inline void EulerSolver::flux_x(int i, int j, FluidValues& flux)
+inline void AdiabaticSolver::flux_x(int i, int j, FluidValues& flux)
 {
   FluidValues uW, uE;
   double ap, am;
@@ -159,7 +159,7 @@ inline void EulerSolver::flux_x(int i, int j, FluidValues& flux)
   checkFluid(flux);
 }
 
-inline void EulerSolver::flux_y(int i, int j, FluidValues& flux)
+inline void AdiabaticSolver::flux_y(int i, int j, FluidValues& flux)
 {
   FluidValues uW, uE;
   double ap, am;
@@ -191,7 +191,7 @@ inline void EulerSolver::flux_y(int i, int j, FluidValues& flux)
   checkFluid(flux);
 }
 
-inline void EulerSolver::hydroRhs(Index p, FluidValues& dudt)
+inline void AdiabaticSolver::hydroRhs(Index p, FluidValues& dudt)
 {
   FluidValues fmx, fpx;
   FluidValues fmy, fpy;
@@ -207,7 +207,7 @@ inline void EulerSolver::hydroRhs(Index p, FluidValues& dudt)
 }
 
 
-void EulerSolver::timeStep(double dt)
+void AdiabaticSolver::timeStep(double dt)
 {
   schnek::DomainSubdivision<Field> &subdivision = Vellamo::getSubdivision();
 
@@ -293,7 +293,7 @@ void EulerSolver::timeStep(double dt)
   }
 }
 
-double EulerSolver::maxDt()
+double AdiabaticSolver::maxDt()
 {
   schnek::DomainSubdivision<Field> &subdivision = Vellamo::getSubdivision();
 
