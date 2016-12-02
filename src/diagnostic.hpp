@@ -22,4 +22,4 @@ class FieldDiagnostic : public schnek::HDFGridDiagnostic<Field, pField>
 
 
 
-#endif /* SRC_DIAGNOSTIC_HPP_ */
+#endif /* DIAGNOSTIC_HPP_ */

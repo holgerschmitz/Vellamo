@@ -147,14 +147,14 @@ void Vellamo::execute()
       schnek::Logger::instance().out() <<"Time "<< time << std::endl;
 
     boost::optional<double> maxDt;
-    BOOST_FOREACH(Solver *f, schnek::BlockContainer<Solver>::childBlocks())
+    BOOST_FOREACH(pSolver f, schnek::BlockContainer<Solver>::childBlocks())
     {
       maxDt = (maxDt)?std::min(maxDt.get(), f->maxDt()):f->maxDt();
     }
 
     dt = cflFactor*maxDt.get();
 
-    BOOST_FOREACH(Solver *f, childBlocks())
+    BOOST_FOREACH(pSolver f, childBlocks())
     {
       f->timeStep(dt);
     }

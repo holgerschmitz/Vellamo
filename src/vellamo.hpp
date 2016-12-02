@@ -78,4 +78,4 @@ class Vellamo : public schnek::Block, public schnek::BlockContainer<Solver>
     static schnek::DomainSubdivision<Field> &getSubdivision() { return instance->subdivision; };
 };
 
-#endif // MPULSE_MPULSE_H
+#endif // VELLAMO_HPP_

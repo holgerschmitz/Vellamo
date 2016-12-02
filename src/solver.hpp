@@ -18,6 +18,6 @@ class Solver : public schnek::ChildBlock<Solver>, public schnek::BlockContainer<
     virtual void timeStep(double dt) = 0;
 };
 
-
+typedef boost::shared_ptr<Solver> pSolver;
 
 #endif /* SOLVER_HPP_ */

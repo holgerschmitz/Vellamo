@@ -56,4 +56,4 @@ class AdiabaticSolver: public Solver
     double maxDt();
 };
 
-#endif // MPULSE_EULER_SOLVER_H
+#endif // EULER_SOLVER_HPP_

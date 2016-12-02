@@ -45,6 +45,8 @@ class BoundaryCondition : public schnek::ChildBlock<BoundaryCondition>
     virtual void applyHiY(Field &Rho, Field &Mx, Field &My, Field &E) = 0;
 };
 
+typedef boost::shared_ptr<BoundaryCondition> pBoundaryCondition;
+
 class ZeroNeumannBoundaryBlock : public BoundaryCondition
 {
   private:
