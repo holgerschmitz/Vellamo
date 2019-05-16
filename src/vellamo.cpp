@@ -8,12 +8,12 @@
 #include "vellamo.hpp"
 #include "diagnostic.hpp"
 
+#include "hydro_fields.hpp"
 #include "solver.hpp"
 #include "euler_solver.hpp"
 #include "boundary.hpp"
 
 #include <schnek/parser.hpp>
-#include <schnek/tools/fieldtools.hpp>
 #include <schnek/tools/literature.hpp>
 #include <schnek/util/logger.hpp>
 
@@ -58,41 +58,20 @@ void Vellamo::initParameters(schnek::BlockParameters &parameters)
   parameters.addParameter("cflFactor", &cflFactor, 0.5);
   x_parameters = parameters.addArrayParameter("", x, schnek::BlockParameters::readonly);
 
-  Rho_parameter = parameters.addParameter("Rho", &initRho, 0.0);
-
-  M_parameters = parameters.addArrayParameter("M", initM, 0.0);
-
-  E_parameter = parameters.addParameter("E", &initE, 0.0);
-
   spaceVars = schnek::pParametersGroup(new schnek::ParametersGroup());
   spaceVars->addArray(x_parameters);
 }
 
-void Vellamo::registerData()
+
+void Vellamo::initFields()
 {
-  addData("Rho", Rho);
-
-  addData("Mx", M[0]);
-  addData("My", M[1]);
-
-  addData("E", E);
-}
-
-
-void Vellamo::fillValues()
-{
-  schnek::pBlockVariables blockVars = getVariables();
-  schnek::pDependencyMap depMap(new schnek::DependencyMap(blockVars));
-
-  schnek::DependencyUpdater updater(depMap);
-
-  updater.addIndependentArray(x_parameters);
-  schnek::fill_field(*Rho, x, initRho, updater, Rho_parameter);
-
-  schnek::fill_field(*M[0], x, initM[0], updater, M_parameters[0]);
-  schnek::fill_field(*M[1], x, initM[1], updater, M_parameters[1]);
-
-  schnek::fill_field(*E, x, initE, updater, E_parameter);
+  if (schnek::BlockContainer<HydroFields>::childBlocks().empty())
+  {
+    boost::shared_ptr<HydroFields> fields(new HydroFields(shared_from_this()));
+    Block::addChild(fields);
+    fields->registerData();
+    fields->preInit();
+  }
 }
 
 void Vellamo::init()
@@ -113,27 +92,14 @@ void Vellamo::init()
   Index highIn = subdivision.getInnerHi();
 
   innerRange = Range(lowIn, highIn);
-  schnek::Range<double, DIMENSION> domainSize(schnek::Array<double, DIMENSION>(0,0), size);
-  schnek::Array<bool, DIMENSION> stagger;
-
-  stagger = false;
-
-  Rho = boost::make_shared<Field>(lowIn, highIn, domainSize, stagger, 2);
-
-  M[0] = boost::make_shared<Field>(lowIn, highIn, domainSize, stagger, 2);
-  M[1] = boost::make_shared<Field>(lowIn, highIn, domainSize, stagger, 2);
-
-  E = boost::make_shared<Field>(lowIn, highIn, domainSize, stagger, 2);
-
-  fillValues();
+  initFields();
 }
 
 void Vellamo::execute()
 {
-
   schnek::DiagnosticManager::instance().setTimeCounter(&timestep);
 
-  if (numChildren()==0)
+  if (schnek::BlockContainer<Solver>::numChildren()==0)
     throw schnek::VariableNotFoundException("At least one Fluid Solver needs to be specified");
 
   double time = 0.0;
@@ -154,7 +120,7 @@ void Vellamo::execute()
 
     dt = cflFactor*maxDt.get();
 
-    BOOST_FOREACH(pSolver f, childBlocks())
+    BOOST_FOREACH(pSolver f, schnek::BlockContainer<Solver>::childBlocks())
     {
       f->timeStep(dt);
     }
@@ -175,13 +141,14 @@ int main (int argc, char** argv) {
     schnek::BlockClasses blocks;
 
     blocks.registerBlock("vellamo").setClass<Vellamo>();
+    blocks("Fields").setClass<HydroFields>();
     blocks("FieldDiag").setClass<FieldDiagnostic>();
     blocks("CompressibleEuler").setClass<AdiabaticSolver>();
 
     blocks("ZeroNeumannBoundary").setClass<ZeroNeumannBoundaryBlock>();
     blocks("WallBoundary").setClass<WallBoundaryBlock>();
 
-    blocks("vellamo").addChildren("FieldDiag")("CompressibleEuler");
+    blocks("vellamo").addChildren("Fields")("FieldDiag")("CompressibleEuler");
     blocks("CompressibleEuler").addChildren("ZeroNeumannBoundary")("WallBoundary");
 
 

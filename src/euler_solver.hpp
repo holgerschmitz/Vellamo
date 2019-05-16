@@ -17,21 +17,20 @@ class Storage;
 class Current;
 
 const int C_RHO = 0;
-const int C_MX  = 1;
-const int C_MY  = 2;
-const int C_E   = 3;
+const int C_E   = 1;
+const int C_M[]  = {2, 3, 4};
 
 class AdiabaticSolver: public Solver
 {
   public:
-    typedef schnek::Array<double, 4> FluidValues;
+    typedef schnek::Array<double, DIMENSION+2> FluidValues;
   private:
     pField Rho;
-    pField Mx, My;
+    schnek::Array<pField, DIMENSION> M;
     pField E;
 
     pField Rho_s;
-    pField Mx_s, My_s;
+    schnek::Array<pField, DIMENSION> M_s;
     pField E_s;
 
     Vector dx;
@@ -39,12 +38,12 @@ class AdiabaticSolver: public Solver
     double van_leer(double u, double up, double um);
     double speed_cf(double rho, double p);
     double eqn_state_ideal_gas(FluidValues &u);
-    void minmax_local_speed(int d, FluidValues uW, FluidValues uE, double pW, double pE, double &ap, double &am);
-    void reconstruct_x(int i, int j, int dir, FluidValues &u);
+    void minmax_local_speed(size_t dim, FluidValues uW, FluidValues uE, double pW, double pE, double &ap, double &am);
+    void reconstruct(size_t dim, const Index &pos, int dir, FluidValues &u);
     void reconstruct_y(int i, int j, int dir, FluidValues &u);
-    void flux_function_x(FluidValues u, double p, FluidValues &f);
+    void flux_function(size_t dim, FluidValues u, double p, FluidValues &f);
     void flux_function_y(FluidValues u, double p, FluidValues &f);
-    void flux_x(int i, int j, FluidValues &flux);
+    void flux(size_t dim, const Index &pos, FluidValues& flux);
     void flux_y(int i, int j, FluidValues &flux);
     void hydroRhs(Index p, FluidValues &dudt);
 

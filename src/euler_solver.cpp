@@ -23,8 +23,11 @@ void AdiabaticSolver::init()
 {
   retrieveData("Rho", Rho);
 
-  retrieveData("Mx", Mx);
-  retrieveData("My", My);
+  const std::string coords[] = {"x", "y", "z"};
+  for (size_t i=0; i<DIMENSION; ++i)
+  {
+    retrieveData(std::string("M")+coords[i], M[i]);
+  }
 
   retrieveData("E", E);
 
@@ -39,9 +42,10 @@ void AdiabaticSolver::init()
 void AdiabaticSolver::postInit()
 {
   Rho_s = boost::make_shared<Field>(*Rho);
-  Mx_s =  boost::make_shared<Field>(*Mx);
-  My_s =  boost::make_shared<Field>(*My);
-  E_s  =  boost::make_shared<Field>(*E);
+  for (size_t i=0; i<DIMENSION; ++i)
+  {
+    M_s[i] =  boost::make_shared<Field>(*M[i]);
+  }
 
   dx = Vellamo::getDx();
 
@@ -52,7 +56,7 @@ inline void AdiabaticSolver::checkFluid(const FluidValues &u)
 {
   return;
 
-  for (int i=0; i<4; ++i)
+  for (size_t i=0; i<4; ++i)
     if (!(u[i]==u[i]) || !(0.0*u[i]==0.0*u[i]))
     {
       std::cerr << "NaN or Infinity\n";
@@ -74,18 +78,24 @@ inline double AdiabaticSolver::speed_cf(double rho, double p)
 
 inline double AdiabaticSolver::eqn_state_ideal_gas(FluidValues& u)
 {
-  double internal_energy = std::max(0.0, u[C_E] - 0.5*(u[C_MX]*u[C_MX] + u[C_MY]*u[C_MY])/u[C_RHO]);
+  double sqrU = 0.0;
+  for (size_t i=0; i<DIMENSION; ++i)
+  {
+    sqrU += u[C_M[i]]*u[C_M[i]];
+  }
+
+  double internal_energy = std::max(0.0, u[C_E] - 0.5*(sqrU)/u[C_RHO]);
 
   return (adiabaticGamma-1.0)*internal_energy;
 }
 
-void AdiabaticSolver::minmax_local_speed(int d, FluidValues uW, FluidValues uE, double pW, double pE, double &ap, double &am)
+void AdiabaticSolver::minmax_local_speed(size_t dim, FluidValues uW, FluidValues uE, double pW, double pE, double &ap, double &am)
 {
   double vW, vE;
   double cfW, cfE;
 
-  vW = uW[C_MX+d] / uW[C_RHO];
-  vE = uE[C_MX+d] / uE[C_RHO];
+  vW = uW[C_M[dim]] / uW[C_RHO];
+  vE = uE[C_M[dim]] / uE[C_RHO];
 
   cfW = speed_cf(uW[C_RHO], pW);
   cfE = speed_cf(uE[C_RHO], pE);
@@ -94,58 +104,51 @@ void AdiabaticSolver::minmax_local_speed(int d, FluidValues uW, FluidValues uE, 
   am = std::min( (vW-cfW), std::min( (vE-cfE), 0.0 ));
 }
 
-void AdiabaticSolver::reconstruct_x(int i, int j, int dir, FluidValues& u)
+void AdiabaticSolver::reconstruct(size_t dim, const Index &pos, int dir, FluidValues& u)
 {
-  u[C_RHO] = (*Rho)(i,j) + dir*van_leer((*Rho)(i,j), (*Rho)(i+1,j), (*Rho)(i-1,j));
-  u[C_MX]  = (*Mx)(i,j)  + dir*van_leer((*Mx)(i,j),  (*Mx)(i+1,j),  (*Mx)(i-1,j));
-  u[C_MY]  = (*My)(i,j)  + dir*van_leer((*My)(i,j),  (*My)(i+1,j),  (*My)(i-1,j));
-  u[C_E]   = (*E)(i,j)   + dir*van_leer((*E)(i,j),   (*E)(i+1,j),   (*E)(i-1,j));
+  Index posp = pos;
+  ++posp[dim];
+  Index posm = pos;
+  --posm[dim];
+
+  u[C_RHO] = (*Rho)[pos] + dir*van_leer((*Rho)[pos], (*Rho)[posp], (*Rho)[posm]);
+
+  for (size_t i=0; i<DIMENSION; ++i)
+  {
+    u[C_M[i]] = (*M[i])[pos] + dir*van_leer((*M[i])[pos],  (*M[i])[posp],  (*M[i])[posm]);
+  }
+  u[C_E] = (*E)[pos] + dir*van_leer((*E)[pos],   (*E)[posp],   (*E)[posm]);
 }
 
-void AdiabaticSolver::reconstruct_y(int i, int j, int dir, FluidValues& u)
-{
-  u[C_RHO] = (*Rho)(i,j) + dir*van_leer((*Rho)(i,j), (*Rho)(i,j+1), (*Rho)(i,j-1));
-  u[C_MX]  = (*Mx)(i,j)  + dir*van_leer((*Mx)(i,j),  (*Mx)(i,j+1),  (*Mx)(i,j-1));
-  u[C_MY]  = (*My)(i,j)  + dir*van_leer((*My)(i,j),  (*My)(i,j+1),  (*My)(i,j-1));
-  u[C_E]   = (*E)(i,j)   + dir*van_leer((*E)(i,j),   (*E)(i,j+1),   (*E)(i,j-1));
-}
-
-void AdiabaticSolver::flux_function_x(FluidValues u, double p, FluidValues &f)
-{
-  double rho = u[C_RHO];
-  double mx = u[C_MX];
-  double my = u[C_MY];
-  double engy = u[C_E];
-
-  f[C_RHO]   = mx;
-  f[C_E]     = (engy + p)*mx/rho;
-  f[C_MX]    = mx*mx/rho + p;
-  f[C_MY]    = mx*my/rho;
-}
-
-void AdiabaticSolver::flux_function_y(FluidValues u, double p, FluidValues &f)
+void AdiabaticSolver::flux_function(size_t dim, FluidValues u, double p, FluidValues &f)
 {
   double rho = u[C_RHO];
-  double mx = u[C_MX];
-  double my = u[C_MY];
+  double mdim = u[C_M[dim]];
   double engy = u[C_E];
 
-  f[C_RHO]   = my;
-  f[C_E]     = (engy + p)*my/rho;
-  f[C_MX]    = mx*my/rho;
-  f[C_MY]    = my*my/rho + p;
+  f[C_RHO]   = mdim;
+  f[C_E]     = (engy + p)*mdim/rho;
+  for (size_t i=0; i<DIMENSION; ++i)
+  {
+    f[C_M[i]] = mdim*u[C_M[i]]/rho;
+  }
+  f[C_M[dim]] += p;
 }
 
-inline void AdiabaticSolver::flux_x(int i, int j, FluidValues& flux)
+
+inline void AdiabaticSolver::flux(size_t dim, const Index &pos, FluidValues& flux)
 {
   FluidValues uW, uE;
   double ap, am;
   FluidValues fE, fW;
   double pE, pW;
 
+  Index posp = pos;
+  ++posp[dim];
+
   // reconstruct the MHD variables on the cell boundary
-  reconstruct_x(i,   j, +1, uE);
-  reconstruct_x(i+1, j, -1, uW);
+  reconstruct(dim, pos,  +1, uE);
+  reconstruct(dim, posp, -1, uW);
 
   // calculate the thermodynamical variables, pressure and temperature
   pE = eqn_state_ideal_gas(uE);
@@ -160,58 +163,30 @@ inline void AdiabaticSolver::flux_x(int i, int j, FluidValues& flux)
 //  }
 
   // evaluate the flux function
-  flux_function_x(uW, pW, fW);
-  flux_function_x(uE, pE, fE);
+  flux_function(dim, uW, pW, fW);
+  flux_function(dim, uE, pE, fE);
 
   // assemble everything to calculate the flux
   flux = (ap*fE - am*fW + ap*am*(uW-uE))/(ap-am);
   checkFluid(flux);
 }
 
-inline void AdiabaticSolver::flux_y(int i, int j, FluidValues& flux)
+inline void AdiabaticSolver::hydroRhs(Index pos, FluidValues& dudt)
 {
-  FluidValues uW, uE;
-  double ap, am;
-  FluidValues fE, fW;
-  double pE, pW;
 
-  // reconstruct the MHD variables on the cell boundary
-  reconstruct_y(i, j  , +1, uE);
-  reconstruct_y(i, j+1, -1, uW);
+  FluidValues sum = 0;
+  for (size_t i=0; i<DIMENSION; ++i)
+  {
+    Index posm = pos;
+    FluidValues fm, fp;
+    --posm[i];
+    flux(i, posm, fm);
+    flux(i, pos,  fp);
 
-  // calculate the thermodynamical variables, pressure and temperature
-  pE = eqn_state_ideal_gas(uE);
-  pW = eqn_state_ideal_gas(uW);
+    sum += (fm - fp) / dx[i];
+  }
 
-  // determine the minimum and maximum local speeds
-  minmax_local_speed(1, uW, uE, pW, pE, ap, am);
-
-//  if (ap==am) {
-//    flux = 0.0;
-//    return;
-//  }
-
-  // evaluate the flux function
-  flux_function_y(uW, pW, fW);
-  flux_function_y(uE, pE, fE);
-
-  // assemble everything to calculate the flux
-  flux = (ap*fE-am*fW + ap*am*(uW-uE))/(ap-am);
-  checkFluid(flux);
-}
-
-inline void AdiabaticSolver::hydroRhs(Index p, FluidValues& dudt)
-{
-  FluidValues fmx, fpx;
-  FluidValues fmy, fpy;
-
-  flux_x(p[0]-1, p[1], fmx);
-  flux_x(  p[0], p[1], fpx);
-
-  flux_y(p[0], p[1]-1, fmy);
-  flux_y(p[0],   p[1], fpy);
-
-  dudt = (fmx-fpx)/dx[0] + (fmy-fpy)/dx[1];
+  dudt = sum;
   checkFluid(dudt);
 }
 
@@ -221,84 +196,110 @@ void AdiabaticSolver::timeStep(double dt)
   schnek::DomainSubdivision<Field> &subdivision = Vellamo::getSubdivision();
 
   Field &Rho = *(this->Rho);
-  Field &Mx = *(this->Mx);
-  Field &My = *(this->My);
+  schnek::Array<Field*, DIMENSION> M;
+
   Field &E = *(this->E);
 
   Field &Rho_s = *(this->Rho_s);
-  Field &Mx_s = *(this->Mx_s);
-  Field &My_s = *(this->My_s);
+  schnek::Array<Field*, DIMENSION> M_s;
   Field &E_s = *(this->E_s);
+
+  for (size_t i=0; i<DIMENSION; ++i)
+  {
+    M[i] = &(*this->M[i]);
+    M_s[i] = &(*this->M_s[i]);
+  }
 
   Index lo = Rho.getInnerLo();
   Index hi = Rho.getInnerHi();
-  Index p;
+  Range range(lo, hi);
+  Range::iterator range_end = range.end();
   FluidValues dudt;
 
   // First step
-  for (p[0]=lo[0]; p[0]<=hi[0]; ++p[0])
-    for (p[1]=lo[1]; p[1]<=hi[1]; ++p[1])
-    {
-      hydroRhs(p, dudt);
+  for (Range::iterator it = range.begin();
+       it != range_end;
+       ++it)
+  {
+    const Index &p = *it;
+    hydroRhs(p, dudt);
 
-      Rho_s(p[0],p[1]) = Rho(p[0],p[1]) + dt*dudt[C_RHO];
-      Mx_s(p[0],p[1])  = Mx(p[0],p[1])  + dt*dudt[C_MX];
-      My_s(p[0],p[1])  = My(p[0],p[1])  + dt*dudt[C_MY];
-      E_s(p[0],p[1])   = E(p[0],p[1])   + dt*dudt[C_E];
+    Rho_s[p] = Rho[p] + dt*dudt[C_RHO];
+    for (size_t i=0; i<DIMENSION; ++i)
+    {
+     (*M_s[i])[p] = (*M[i])[p]  + dt*dudt[C_M[i]];
     }
+    E_s[p]   = E[p]   + dt*dudt[C_E];
+  }
 
   // Swap starred fields and the unstarred arrays
-  for (p[0]=lo[0]; p[0]<=hi[0]; ++p[0])
-      for (p[1]=lo[1]; p[1]<=hi[1]; ++p[1])
-      {
-        std::swap(Rho(p[0],p[1]), Rho_s(p[0],p[1]));
-        std::swap(Mx(p[0],p[1]) , Mx_s(p[0],p[1]));
-        std::swap(My(p[0],p[1]) , My_s(p[0],p[1]));
-        std::swap(E(p[0],p[1])  , E_s(p[0],p[1]));
-      }
+  for (Range::iterator it = range.begin();
+       it != range_end;
+       ++it)
+  {
+    const Index &p = *it;
+    std::swap(Rho[p], Rho_s[p]);
+    for (size_t i=0; i<DIMENSION; ++i)
+    {
+      std::swap((*M[i])[p], (*M_s[i])[p]);
+    }
+    std::swap(E[p], E_s[p]);
+  }
 
   subdivision.exchange(Rho);
-  subdivision.exchange(Mx);
-  subdivision.exchange(My);
+  for (size_t i=0; i<DIMENSION; ++i)
+  {
+    subdivision.exchange(*M[i]);
+  }
   subdivision.exchange(E);
 
   BOOST_FOREACH(pBoundaryCondition bc, schnek::BlockContainer<BoundaryCondition>::childBlocks())
   {
-    bc->apply(Rho, Mx, My, E);
+    bc->apply(Rho, this->M, E);
   }
 
   // second step
-  for (p[0]=lo[0]; p[0]<=hi[0]; ++p[0])
-    for (p[1]=lo[1]; p[1]<=hi[1]; ++p[1])
-    {
-      hydroRhs(p, dudt);
+  for (Range::iterator it = range.begin();
+       it != range_end;
+       ++it)
+  {
+    const Index &p = *it;
+    hydroRhs(p, dudt);
 
-      Rho_s(p[0],p[1]) = 0.5*(Rho(p[0],p[1]) + Rho_s(p[0],p[1]) + dt*dudt[C_RHO]);
-      Mx_s(p[0],p[1])  = 0.5*(Mx(p[0],p[1])  + Mx_s(p[0],p[1])  + dt*dudt[C_MX]);
-      My_s(p[0],p[1])  = 0.5*(My(p[0],p[1])  + My_s(p[0],p[1])  + dt*dudt[C_MY]);
-      E_s(p[0],p[1])   = 0.5*(E(p[0],p[1])   + E_s(p[0],p[1])   + dt*dudt[C_E]);
+    Rho_s[p] = 0.5*(Rho[p] + Rho_s[p] + dt*dudt[C_RHO]);
+    for (size_t i=0; i<DIMENSION; ++i)
+    {
+     (*M_s[i])[p] = 0.5*((*M[i])[p]  + (*M_s[i])[p]  + dt*dudt[C_M[i]]);
     }
+    E_s[p]   = 0.5*(E[p]   + E_s[p]   + dt*dudt[C_E]);
+  }
 
 
   // Copy starred back into unstarred fields
 
-  for (p[0]=lo[0]; p[0]<=hi[0]; ++p[0])
-    for (p[1]=lo[1]; p[1]<=hi[1]; ++p[1])
+  for (Range::iterator it = range.begin();
+       it != range_end;
+       ++it)
+  {
+    const Index &p = *it;
+    Rho[p] = Rho_s[p];
+    for (size_t i=0; i<DIMENSION; ++i)
     {
-      Rho(p[0],p[1]) = Rho_s(p[0],p[1]);
-      Mx(p[0],p[1]) = Mx_s(p[0],p[1]);
-      My(p[0],p[1]) = My_s(p[0],p[1]);
-      E(p[0],p[1]) = E_s(p[0],p[1]);
+     (*M[i])[p] = (*M_s[i])[p];
     }
+    E[p] = E_s[p];
+  }
 
   subdivision.exchange(Rho);
-  subdivision.exchange(Mx);
-  subdivision.exchange(My);
+  for (size_t i=0; i<DIMENSION; ++i)
+  {
+    subdivision.exchange(*M[i]);
+  }
   subdivision.exchange(E);
 
   BOOST_FOREACH(pBoundaryCondition bc, schnek::BlockContainer<BoundaryCondition>::childBlocks())
   {
-    bc->apply(Rho, Mx, My, E);
+    bc->apply(Rho, this->M, E);
   }
 }
 
@@ -307,32 +308,45 @@ double AdiabaticSolver::maxDt()
   schnek::DomainSubdivision<Field> &subdivision = Vellamo::getSubdivision();
 
   Field &Rho = *(this->Rho);
-  Field &Mx = *(this->Mx);
-  Field &My = *(this->My);
+
+  schnek::Array<Field*, DIMENSION> M;
   Field &E = *(this->E);
+  for (size_t i=0; i<DIMENSION; ++i)
+  {
+    M[i] = &(*this->M[i]);
+  }
 
   Index lo = Rho.getInnerLo();
   Index hi = Rho.getInnerHi();
+  Range range(lo, hi);
+  Range::iterator range_end = range.end();
+
   FluidValues u;
-  double p;
   double max_speed = 0.0;
 
   double min_dx = std::min(dx[0], dx[1]);
 
-  for (int i=lo[0]; i<=hi[0]; ++i)
-    for (int j=lo[1]; j<=hi[1]; ++j)
+  for (Range::iterator it = range.begin();
+       it != range_end;
+       ++it)
+  {
+    const Index &p = *it;
+    u[C_RHO]    = Rho[p];
+
+    double maxU = 0.0;
+    for (size_t i=0; i<DIMENSION; ++i)
     {
-      u[C_RHO]    = Rho(i,j);
-      u[C_MX]    = Mx(i,j);
-      u[C_MY]    = My(i,j);
-      u[C_E] = E(i,j);
-
-      p = eqn_state_ideal_gas(u);
-
-      double v_max = std::max(fabs(u[C_MX]),fabs(u[C_MY]))/u[C_RHO];
-
-      max_speed = std::max(max_speed,speed_cf(u[C_RHO], p)+v_max);
+      u[C_M[i]]    = (*M[i])[p];
+      maxU = std::max(maxU, fabs(u[C_M[i]]));
     }
+    u[C_E] = E[p];
+
+    double pressure = eqn_state_ideal_gas(u);
+
+    double v_max = maxU/u[C_RHO];
+
+    max_speed = std::max(max_speed,speed_cf(u[C_RHO], pressure)+v_max);
+  }
 
   max_speed = subdivision.maxReduce(max_speed);
   return min_dx/max_speed;

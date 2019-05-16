@@ -4,21 +4,28 @@ TARGET=vellamo
 #OFLAGS  = -g -O0 -Wall
 OFLAGS  = -O3 -Wall
 
-INCLUDE = -I/usr/local/include
-#CXX     = $(X_CXX)
+# Set this to wherever your HDF5 installation resides
+# Make sure that this is compatible with your compiler below.
+HDFBASE = /usr/lib/x86_64-linux-gnu/hdf5/mpich
+
+# Your C++ compiler or MPI C++ compiler wrapper
+# CXX     = g++
 CXX     = mpic++
 
 CXXFLAGS = $(OFLAGS)
 
+INCLUDE = -I/usr/local/include -I$(HDFBASE)/include
+
 SOURCES = src/boundary.cpp \
   src/diagnostic.cpp \
   src/euler_solver.cpp \
+  src/hydro_fields.cpp \
   src/vellamo.cpp
 
 
 OBJECTS = $(SOURCES:.cpp=.o)
 
-LDFLAGS = 
+LDFLAGS = -L$(HDFBASE)/lib -Wl,-rpath,$(HDFBASE)/lib
 
 LOADLIBS = -lhdf5 -lschnek -lm
 BINDIR = bin

@@ -10,28 +10,17 @@
 
 #include <schnek/grid.hpp>
 #include <schnek/variables.hpp>
+#include <boost/enable_shared_from_this.hpp>
 
-#ifdef NDEBUG
-#define VellamoGridChecker schnek::GridNoArgCheck
-#else
-#define VellamoGridChecker schnek::GridAssertCheck
-#endif
-
-static const size_t DIMENSION = 2;
-
-typedef schnek::Array<int, DIMENSION> Index;
-typedef schnek::Array<double, DIMENSION> Vector;
-typedef schnek::Field<double, DIMENSION,VellamoGridChecker> Field;
-typedef boost::shared_ptr<Field> pField;
-typedef schnek::Range<int, DIMENSION> Range;
-typedef schnek::Array<bool, DIMENSION> Stagger;
-
-static const double clight = 299792458;
-static const double clight2 = clight*clight;
+#include "types.hpp"
 
 class Solver;
+class HydroFields;
 
-class Vellamo : public schnek::Block, public schnek::BlockContainer<Solver>
+class Vellamo : public schnek::Block,
+                public schnek::BlockContainer<Solver>,
+                public schnek::BlockContainer<HydroFields>,
+                public boost::enable_shared_from_this<Vellamo>
 {
   private:
     static Vellamo *instance;
@@ -42,32 +31,19 @@ class Vellamo : public schnek::Block, public schnek::BlockContainer<Solver>
 
     double cflFactor;
     double dt;
-
-
-    double tMax;
-    Range innerRange;
-    pField Rho;
-    schnek::Array<pField, DIMENSION> M;
-    pField E;
-
     schnek::MPICartSubdivision<Field> subdivision;
 
     Vector x;
     schnek::Array<schnek::pParameter, DIMENSION> x_parameters;
-    schnek::pParameter Rho_parameter;
-    schnek::Array<schnek::pParameter, DIMENSION> M_parameters;
-    schnek::pParameter E_parameter;
     schnek::pParametersGroup spaceVars;
 
-    double initRho;
-    Vector initM;
-    double initE;
+    double tMax;
+    Range innerRange;
 
     int timestep;
   protected:
     void initParameters(schnek::BlockParameters &blockPars);
-    void registerData();
-    void fillValues();
+    void initFields();
   public:
     Vellamo();
     void init();
@@ -75,7 +51,10 @@ class Vellamo : public schnek::Block, public schnek::BlockContainer<Solver>
 
     static Index getGlobalMax() { return instance->globalMax; }
     static Vector getDx() { return instance->dx; }
+    static Vector getSize() { return instance->size; }
     static schnek::DomainSubdivision<Field> &getSubdivision() { return instance->subdivision; };
+    static Vector &getX() { return instance->x; }
+    static schnek::Array<schnek::pParameter, DIMENSION> &getXParameter() { return instance->x_parameters; }
 };
 
 #endif // VELLAMO_HPP_

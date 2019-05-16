@@ -14,19 +14,15 @@
 class ZeroNeumannBoundary
 {
   public:
-    void applyLoX(Field &f);
-    void applyLoY(Field &f);
-    void applyHiX(Field &f);
-    void applyHiY(Field &f);
+    void applyLo(size_t dim, Field &f);
+    void applyHi(size_t dim, Field &f);
 };
 
 class ZeroDirichletBoundary
 {
   public:
-    void applyLoX(Field &f);
-    void applyLoY(Field &f);
-    void applyHiX(Field &f);
-    void applyHiY(Field &f);
+    void applyLo(size_t dim, Field &f);
+    void applyHi(size_t dim, Field &f);
 };
 
 class BoundaryCondition : public schnek::ChildBlock<BoundaryCondition>
@@ -37,12 +33,10 @@ class BoundaryCondition : public schnek::ChildBlock<BoundaryCondition>
   public:
     void initParameters(schnek::BlockParameters &blockPars);
     virtual ~BoundaryCondition() {}
-    void apply(Field &Rho, Field &Mx, Field &My, Field &E);
+    void apply(Field &Rho, schnek::Array<pField, DIMENSION> M, Field &E);
 
-    virtual void applyLoX(Field &Rho, Field &Mx, Field &My, Field &E) = 0;
-    virtual void applyLoY(Field &Rho, Field &Mx, Field &My, Field &E) = 0;
-    virtual void applyHiX(Field &Rho, Field &Mx, Field &My, Field &E) = 0;
-    virtual void applyHiY(Field &Rho, Field &Mx, Field &My, Field &E) = 0;
+    virtual void applyLoDim(size_t size_t, Field &Rho, schnek::Array<pField, DIMENSION> M, Field &E) = 0;
+    virtual void applyHiDim(size_t size_t, Field &Rho, schnek::Array<pField, DIMENSION> M, Field &E) = 0;
 };
 
 typedef boost::shared_ptr<BoundaryCondition> pBoundaryCondition;
@@ -52,10 +46,8 @@ class ZeroNeumannBoundaryBlock : public BoundaryCondition
   private:
     ZeroNeumannBoundary boundary;
   public:
-    void applyLoX(Field &Rho, Field &Mx, Field &My, Field &E);
-    void applyLoY(Field &Rho, Field &Mx, Field &My, Field &E);
-    void applyHiX(Field &Rho, Field &Mx, Field &My, Field &E);
-    void applyHiY(Field &Rho, Field &Mx, Field &My, Field &E);
+    void applyLoDim(size_t dim, Field &Rho, schnek::Array<pField, DIMENSION> M, Field &E);
+    void applyHiDim(size_t dim, Field &Rho, schnek::Array<pField, DIMENSION> M, Field &E);
 };
 
 class WallBoundaryBlock : public BoundaryCondition
@@ -64,10 +56,8 @@ class WallBoundaryBlock : public BoundaryCondition
     ZeroNeumannBoundary neumannBoundary;
     ZeroDirichletBoundary dirichletBoundary;
   public:
-    void applyLoX(Field &Rho, Field &Mx, Field &My, Field &E);
-    void applyLoY(Field &Rho, Field &Mx, Field &My, Field &E);
-    void applyHiX(Field &Rho, Field &Mx, Field &My, Field &E);
-    void applyHiY(Field &Rho, Field &Mx, Field &My, Field &E);
+    void applyLoDim(size_t dim, Field &Rho, schnek::Array<pField, DIMENSION> M, Field &E);
+    void applyHiDim(size_t dim, Field &Rho, schnek::Array<pField, DIMENSION> M, Field &E);
 };
 
 

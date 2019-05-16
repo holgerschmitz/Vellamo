@@ -8,202 +8,152 @@
 #include "boundary.hpp"
 
 
-void ZeroNeumannBoundary::applyLoX(Field& f)
+void ZeroNeumannBoundary::applyLo(size_t dim, Field& f)
 {
-  double x_lo = f.getLo(0);
-  double x_lo_inner = f.getInnerLo()[0];
+  Index lo_inner = f.getInnerLo();
 
-  double y_lo = f.getLo(1);
-  double y_hi = f.getHi(1);
-  for (int y=y_lo; y<=y_hi; ++y)
+  Range range(f.getLo(), f.getHi());
+
+  int innerLo = f.getInnerLo()[dim];
+  range.getHi()[dim] =  innerLo - 1;
+
+  const Range::iterator itEnd = range.end();
+
+  for (Range::iterator it = range.begin();
+       it != itEnd;
+       ++it)
   {
-    double val = f(x_lo_inner,y);
-    for (int x=x_lo; x<x_lo_inner; ++x)
-      f(x,y) = val;
-  }
-}
-
-void ZeroNeumannBoundary::applyLoY(Field& f)
-{
-  double y_lo = f.getLo(1);
-  double y_lo_inner = f.getInnerLo()[1];
-
-  double x_lo = f.getLo(0);
-  double x_hi = f.getHi(0);
-  for (int x=x_lo; x<=x_hi; ++x)
-  {
-    double val = f(x,y_lo_inner);
-    for (int y=y_lo; y<y_lo_inner; ++y)
-      f(x,y) = val;
-  }
-}
-
-void ZeroNeumannBoundary::applyHiX(Field& f)
-{
-  double x_hi = f.getHi(0);
-  double x_hi_inner = f.getInnerHi()[0];
-
-  double y_lo = f.getLo(1);
-  double y_hi = f.getHi(1);
-  for (int y=y_lo; y<=y_hi; ++y)
-  {
-    double val = f(x_hi_inner,y);
-    for (int x=x_hi; x>x_hi_inner; --x)
-      f(x,y) = val;
-  }
-}
-
-void ZeroNeumannBoundary::applyHiY(Field& f)
-{
-  double y_hi = f.getHi(1);
-  double y_hi_inner = f.getInnerHi()[1];
-
-  double x_lo = f.getLo(0);
-  double x_hi = f.getHi(0);
-  for (int x=x_lo; x<=x_hi; ++x)
-  {
-    double val = f(x,y_hi_inner);
-    for (int y=y_hi; y>y_hi_inner; --y)
-      f(x,y) = val;
+    Index src = *it;
+    src[dim] = innerLo;
+    f[*it] = f[src];
   }
 }
 
 
-void ZeroDirichletBoundary::applyLoX(Field& f)
+void ZeroNeumannBoundary::applyHi(size_t dim, Field& f)
 {
-  double x_lo = f.getLo(0);
-  double x_lo_inner = f.getInnerLo()[0];
+  Index lo_inner = f.getInnerLo();
 
-  double y_lo = f.getLo(1);
-  double y_hi = f.getHi(1);
-  for (int y=y_lo; y<=y_hi; ++y)
+  Range range(f.getLo(), f.getHi());
+
+  int innerHi = f.getInnerHi()[dim];
+  range.getLo()[dim] =  innerHi + 1;
+
+  const Range::iterator itEnd = range.end();
+
+  for (Range::iterator it = range.begin();
+       it != itEnd;
+       ++it)
   {
-    for (int x=x_lo; x<x_lo_inner; ++x)
-      f(x,y) = 0.0;
+    Index src = *it;
+    src[dim] = innerHi;
+    f[*it] = f[src];
   }
 }
 
-void ZeroDirichletBoundary::applyLoY(Field& f)
-{
-  double y_lo = f.getLo(1);
-  double y_lo_inner = f.getInnerLo()[1];
 
-  double x_lo = f.getLo(0);
-  double x_hi = f.getHi(0);
-  for (int x=x_lo; x<=x_hi; ++x)
+void ZeroDirichletBoundary::applyLo(size_t dim, Field& f)
+{
+  Index lo_inner = f.getInnerLo();
+
+  Range range(f.getLo(), f.getHi());
+
+  int innerLo = f.getInnerLo()[dim];
+  range.getHi()[dim] =  innerLo - 1;
+
+  const Range::iterator itEnd = range.end();
+
+  for (Range::iterator it = range.begin();
+       it != itEnd;
+       ++it)
   {
-    for (int y=y_lo; y<y_lo_inner; ++y)
-      f(x,y) = 0.0;
+    f[*it] = 0.0;
   }
 }
 
-void ZeroDirichletBoundary::applyHiX(Field& f)
+void ZeroDirichletBoundary::applyHi(size_t dim, Field& f)
 {
-  double x_hi = f.getHi(0);
-  double x_hi_inner = f.getInnerHi()[0];
+  Index lo_inner = f.getInnerLo();
 
-  double y_lo = f.getLo(1);
-  double y_hi = f.getHi(1);
-  for (int y=y_lo; y<=y_hi; ++y)
+  Range range(f.getLo(), f.getHi());
+
+  int innerHi = f.getInnerHi()[dim];
+  range.getLo()[dim] =  innerHi + 1;
+
+  const Range::iterator itEnd = range.end();
+
+  for (Range::iterator it = range.begin();
+       it != itEnd;
+       ++it)
   {
-    for (int x=x_hi; x>x_hi_inner; --x)
-      f(x,y) = 0.0;
-  }
-}
-
-void ZeroDirichletBoundary::applyHiY(Field& f)
-{
-  double y_hi = f.getHi(1);
-  double y_hi_inner = f.getInnerHi()[1];
-
-  double x_lo = f.getLo(0);
-  double x_hi = f.getHi(0);
-  for (int x=x_lo; x<=x_hi; ++x)
-  {
-    for (int y=y_hi; y>y_hi_inner; --y)
-      f(x,y) = 0.0;
+    f[*it] = 0.0;
   }
 }
 
 void BoundaryCondition::initParameters(schnek::BlockParameters &blockPars)
 {
-  blockPars.addArrayParameter("low_",applyLo,Index(0));
-  blockPars.addArrayParameter("high_",applyHi,Index(0));
+  blockPars.addArrayParameter("low_",applyLo, Index(0));
+  blockPars.addArrayParameter("high_",applyHi, Index(0));
 }
 
-void BoundaryCondition::apply(Field &Rho, Field &Mx, Field &My, Field &E)
+void BoundaryCondition::apply(Field &Rho, schnek::Array<pField, DIMENSION> M, Field &E)
 {
   schnek::DomainSubdivision<Field> &subdivision = Vellamo::getSubdivision();
 
-  if (bool(applyLo[0]) && subdivision.isBoundLo(0)) applyLoX(Rho, Mx, My, E);
-  if (bool(applyLo[1]) && subdivision.isBoundLo(1)) applyLoY(Rho, Mx, My, E);
-  if (bool(applyHi[0]) && subdivision.isBoundHi(0)) applyHiX(Rho, Mx, My, E);
-  if (bool(applyHi[1]) && subdivision.isBoundHi(1)) applyHiY(Rho, Mx, My, E);
+  for (size_t i=0; i<DIMENSION; i++)
+  {
+    if (bool(applyLo[i]) && subdivision.isBoundLo(i)) applyLoDim(i, Rho, M, E);
+    if (bool(applyHi[i]) && subdivision.isBoundHi(i)) applyHiDim(i, Rho, M, E);
+  }
 }
 
-void ZeroNeumannBoundaryBlock::applyLoX(Field &Rho, Field &Mx, Field &My, Field &E)
+void ZeroNeumannBoundaryBlock::applyLoDim(size_t dim, Field &Rho, schnek::Array<pField, DIMENSION> M, Field &E)
 {
-  boundary.applyLoX(Rho);
-  boundary.applyLoX(Mx);
-  boundary.applyLoX(My);
-  boundary.applyLoX(E);
-}
-
-void ZeroNeumannBoundaryBlock::applyLoY(Field &Rho, Field &Mx, Field &My, Field &E)
-{
-  boundary.applyLoY(Rho);
-  boundary.applyLoY(Mx);
-  boundary.applyLoY(My);
-  boundary.applyLoY(E);
+  boundary.applyLo(dim, Rho);
+  for (size_t i=0; i<DIMENSION; i++)
+  {
+    boundary.applyLo(dim, *M[i]);
+  }
+  boundary.applyLo(dim, E);
 }
 
 
-void ZeroNeumannBoundaryBlock::applyHiX(Field &Rho, Field &Mx, Field &My, Field &E)
+void ZeroNeumannBoundaryBlock::applyHiDim(size_t dim, Field &Rho, schnek::Array<pField, DIMENSION> M, Field &E)
 {
-  boundary.applyHiX(Rho);
-  boundary.applyHiX(Mx);
-  boundary.applyHiX(My);
-  boundary.applyHiX(E);
+  boundary.applyHi(dim, Rho);
+  for (size_t i=0; i<DIMENSION; i++)
+  {
+    boundary.applyHi(dim, *M[i]);
+  }
+  boundary.applyHi(dim, E);
 }
 
-void ZeroNeumannBoundaryBlock::applyHiY(Field &Rho, Field &Mx, Field &My, Field &E)
+void WallBoundaryBlock::applyLoDim(size_t dim, Field &Rho, schnek::Array<pField, DIMENSION> M, Field &E)
 {
-  boundary.applyHiY(Rho);
-  boundary.applyHiY(Mx);
-  boundary.applyHiY(My);
-  boundary.applyHiY(E);
-}
-
-
-void WallBoundaryBlock::applyLoX(Field &Rho, Field &Mx, Field &My, Field &E)
-{
-  neumannBoundary.applyLoX(Rho);
-  dirichletBoundary.applyLoX(Mx);
-  neumannBoundary.applyLoX(My);
-  neumannBoundary.applyLoX(E);
-}
-
-void WallBoundaryBlock::applyLoY(Field &Rho, Field &Mx, Field &My, Field &E)
-{
-  neumannBoundary.applyLoY(Rho);
-  neumannBoundary.applyLoY(Mx);
-  dirichletBoundary.applyLoY(My);
-  neumannBoundary.applyLoY(E);
+  neumannBoundary.applyLo(dim, Rho);
+  for (size_t i=0; i<DIMENSION; i++)
+  {
+    if (i == dim) {
+      dirichletBoundary.applyLo(dim, *M[i]);
+    } else {
+      neumannBoundary.applyLo(dim, *M[i]);
+    }
+  }
+  neumannBoundary.applyLo(dim, E);
 }
 
 
-void WallBoundaryBlock::applyHiX(Field &Rho, Field &Mx, Field &My, Field &E)
+void WallBoundaryBlock::applyHiDim(size_t dim, Field &Rho, schnek::Array<pField, DIMENSION> M, Field &E)
 {
-  neumannBoundary.applyHiX(Rho);
-  dirichletBoundary.applyHiX(Mx);
-  neumannBoundary.applyHiX(My);
-  neumannBoundary.applyHiX(E);
-}
-
-void WallBoundaryBlock::applyHiY(Field &Rho, Field &Mx, Field &My, Field &E)
-{
-  neumannBoundary.applyHiY(Rho);
-  neumannBoundary.applyHiY(Mx);
-  dirichletBoundary.applyHiY(My);
-  neumannBoundary.applyHiY(E);
+  neumannBoundary.applyHi(dim, Rho);
+  for (size_t i=0; i<DIMENSION; i++)
+  {
+    if (i == dim)
+    {
+      dirichletBoundary.applyHi(dim, *M[i]);
+    } else {
+      neumannBoundary.applyHi(dim, *M[i]);
+    }
+  }
+  neumannBoundary.applyHi(dim, E);
 }
