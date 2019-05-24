@@ -18,7 +18,11 @@
 #define MPulseGridChecker schnek::GridAssertCheck
 #endif
 
+#ifdef ENV_DIMENSION
+static const std::size_t DIMENSION = ENV_DIMENSION;
+#else
 static const std::size_t DIMENSION = 3;
+#endif
 
 typedef schnek::Array<int, DIMENSION> Index;
 typedef schnek::Array<double, DIMENSION> Vector;
@@ -34,14 +38,6 @@ typedef boost::shared_ptr<DataLine> pDataLine;
 
 typedef schnek::Range<int, DIMENSION> Range;
 typedef schnek::Array<bool, DIMENSION> Stagger;
-
-static const Stagger exStaggerYee(true,  false, false);
-static const Stagger eyStaggerYee(false, true,  false);
-static const Stagger ezStaggerYee(false, false, true );
-
-static const Stagger bxStaggerYee(false, true,  true );
-static const Stagger byStaggerYee(true,  false, true );
-static const Stagger bzStaggerYee(true,  true,  false);
 
 enum Direction {north, south, west, east, up, down};
 

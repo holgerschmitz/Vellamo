@@ -80,10 +80,10 @@ void Vellamo::init()
 
   subdivision.init(gridSize, 2);
 
-  dx[0] = size[0] / gridSize[0];
-  dx[1] = size[1] / gridSize[1];
-
-  dt = cflFactor*std::min(dx[0],dx[1])/clight;
+  for (size_t i=0; i<DIMENSION; ++i)
+  {
+    dx[i] = size[i] / gridSize[i];
+  }
 
   Index low  = subdivision.getLo();
   Index high = subdivision.getHi();
@@ -102,15 +102,13 @@ void Vellamo::execute()
   if (schnek::BlockContainer<Solver>::numChildren()==0)
     throw schnek::VariableNotFoundException("At least one Fluid Solver needs to be specified");
 
-  double time = 0.0;
+  simulation_time = 0.0;
   timestep = 0;
+  schnek::DiagnosticManager::instance().setPhysicalTime(&simulation_time);
 
-  while (time<=tMax)
+  while (simulation_time<=tMax)
   {
     schnek::DiagnosticManager::instance().execute();
-
-    if (subdivision.master())
-      schnek::Logger::instance().out() <<"Time "<< time << std::endl;
 
     boost::optional<double> maxDt;
     BOOST_FOREACH(pSolver f, schnek::BlockContainer<Solver>::childBlocks())
@@ -119,13 +117,17 @@ void Vellamo::execute()
     }
 
     dt = cflFactor*maxDt.get();
+    dt = schnek::DiagnosticManager::instance().adjustDeltaT(dt);
+
+    if (subdivision.master())
+      schnek::Logger::instance().out() <<"Time "<< simulation_time << ",  dt "<< dt << std::endl;
 
     BOOST_FOREACH(pSolver f, schnek::BlockContainer<Solver>::childBlocks())
     {
       f->timeStep(dt);
     }
 
-    time += dt;
+    simulation_time += dt;
     ++timestep;
   }
 

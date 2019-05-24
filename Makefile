@@ -1,8 +1,8 @@
 
-TARGET=vellamo
+DIMENSION=2
 
-#OFLAGS  = -g -O0 -Wall
-OFLAGS  = -O3 -Wall
+OFLAGS  = -g -O0 -Wall
+#OFLAGS  = -O3 -Wall
 
 # Set this to wherever your HDF5 installation resides
 # Make sure that this is compatible with your compiler below.
@@ -15,6 +15,8 @@ CXX     = mpic++
 CXXFLAGS = $(OFLAGS)
 
 INCLUDE = -I/usr/local/include -I$(HDFBASE)/include
+
+TARGET=vellamo$(DIMENSION)d
 
 SOURCES = src/boundary.cpp \
   src/diagnostic.cpp \
@@ -41,7 +43,7 @@ $(FULLTARGET): $(OBJECTS)
 
 
 %.o: %.cpp
-	$(CXX) -o $@ -c $(CXXFLAGS) $(INCLUDE) $<
+	$(CXX) -DENV_DIMENSION=$(DIMENSION) -o $@ -c $(CXXFLAGS) $(INCLUDE) $<
 
 
 clean:

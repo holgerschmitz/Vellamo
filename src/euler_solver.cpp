@@ -26,9 +26,11 @@ void AdiabaticSolver::init()
   const std::string coords[] = {"x", "y", "z"};
   for (size_t i=0; i<DIMENSION; ++i)
   {
+    std::cout << "Retrieve Data M" << i << std::endl;
     retrieveData(std::string("M")+coords[i], M[i]);
   }
 
+  std::cout << "Retrieve Data E" << std::endl;
   retrieveData("E", E);
 
   schnek::LiteratureArticle Kurganov2000("Kurganov2000", "A. Kurganov and S. Noelle and G. Petrova",
@@ -46,6 +48,7 @@ void AdiabaticSolver::postInit()
   {
     M_s[i] =  boost::make_shared<Field>(*M[i]);
   }
+  E_s = boost::make_shared<Field>(*E);
 
   dx = Vellamo::getDx();
 
@@ -324,7 +327,13 @@ double AdiabaticSolver::maxDt()
   FluidValues u;
   double max_speed = 0.0;
 
-  double min_dx = std::min(dx[0], dx[1]);
+
+  double min_dx = dx[0];
+
+  for (size_t i=1; i<DIMENSION; i++)
+  {
+    min_dx = std::min(min_dx, dx[i]);
+  }
 
   for (Range::iterator it = range.begin();
        it != range_end;

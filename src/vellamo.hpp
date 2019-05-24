@@ -41,6 +41,9 @@ class Vellamo : public schnek::Block,
     Range innerRange;
 
     int timestep;
+
+    /// The global simulation time
+    double simulation_time;
   protected:
     void initParameters(schnek::BlockParameters &blockPars);
     void initFields();
@@ -52,6 +55,8 @@ class Vellamo : public schnek::Block,
     static Index getGlobalMax() { return instance->globalMax; }
     static Vector getDx() { return instance->dx; }
     static Vector getSize() { return instance->size; }
+    static double getT() { return instance->simulation_time; }
+
     static schnek::DomainSubdivision<Field> &getSubdivision() { return instance->subdivision; };
     static Vector &getX() { return instance->x; }
     static schnek::Array<schnek::pParameter, DIMENSION> &getXParameter() { return instance->x_parameters; }

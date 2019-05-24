@@ -43,6 +43,7 @@ void HydroFields::initParameters(schnek::BlockParameters &parameters)
 
 void HydroFields::fillValues()
 {
+  std::cout << "Filling fields" << std::endl;
   schnek::pBlockVariables blockVars = getVariables();
   schnek::pDependencyMap depMap(new schnek::DependencyMap(blockVars));
 
@@ -54,8 +55,10 @@ void HydroFields::fillValues()
   updater.addIndependentArray(x_parameters);
   schnek::fill_field(*Rho, x, initRho, updater, Rho_parameter);
 
-  schnek::fill_field(*M[0], x, initM[0], updater, M_parameters[0]);
-  schnek::fill_field(*M[1], x, initM[1], updater, M_parameters[1]);
+  for (size_t i=0; i<DIMENSION; ++i)
+  {
+    schnek::fill_field(*M[i], x, initM[i], updater, M_parameters[i]);
+  }
 
   schnek::fill_field(*E, x, initE, updater, E_parameter);
 }
@@ -77,4 +80,5 @@ void HydroFields::init()
     M[i]->resize(lowIn, highIn, domainSize, stagger, 2);
   }
   E->resize(lowIn, highIn, domainSize, stagger, 2);
+  fillValues();
 }
