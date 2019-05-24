@@ -33,12 +33,12 @@ void AdiabaticSolver::init()
   std::cout << "Retrieve Data E" << std::endl;
   retrieveData("E", E);
 
-  schnek::LiteratureArticle Kurganov2000("Kurganov2000", "A. Kurganov and S. Noelle and G. Petrova",
+  schnek::LiteratureArticle Kurganov2001("Kurganov2001", "A. Kurganov and S. Noelle and G. Petrova",
       "Semidiscrete central-upwind schemes for hyperbolic conservation laws and Hamilton--Jacobi equations",
       "SIAM J. Sci. Comput.", "2001", "23", "707");
 
   schnek::LiteratureManager::instance().addReference(
-      "Semidiscrete central-upwind scheme for hyperbolic conservation laws", Kurganov2000);
+      "Semidiscrete central-upwind scheme for hyperbolic conservation laws", Kurganov2001);
 }
 
 void AdiabaticSolver::postInit()
