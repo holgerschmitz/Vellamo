@@ -8,18 +8,20 @@
 #ifndef VELLAMO_HPP_
 #define VELLAMO_HPP_
 
+#include "../huerto/types.hpp"
+#include "../huerto/constants.hpp"
+#include "../huerto/hydrodynamics/hydro_solver.hpp"
+#include "../huerto/hydrodynamics/euler/adiabatic_knp.hpp"
+
 #include <schnek/grid.hpp>
 #include <schnek/variables.hpp>
 #include <boost/enable_shared_from_this.hpp>
 
-#include "types.hpp"
-
-class Solver;
-class HydroFields;
+typedef AdiabaticKnp<DIMENSION> Knp;
 
 class Vellamo : public schnek::Block,
-                public schnek::BlockContainer<Solver>,
-                public schnek::BlockContainer<HydroFields>,
+                public schnek::BlockContainer<HydroSolver<Knp::Field, Knp::dim>>,
+                //public schnek::BlockContainer<HydroFields>,
                 public boost::enable_shared_from_this<Vellamo>
 {
   private:

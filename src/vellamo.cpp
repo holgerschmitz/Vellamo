@@ -10,8 +10,10 @@
 
 #include "hydro_fields.hpp"
 #include "solver.hpp"
-#include "euler_solver.hpp"
+// #include "euler_solver.hpp"
 #include "boundary.hpp"
+
+#include "../huerto/hydrodynamics/euler/adiabatic_knp.hpp"
 
 #include <schnek/parser.hpp>
 #include <schnek/tools/literature.hpp>
@@ -145,7 +147,7 @@ int main (int argc, char** argv) {
     blocks.registerBlock("vellamo").setClass<Vellamo>();
     blocks("Fields").setClass<HydroFields>();
     blocks("FieldDiag").setClass<FieldDiagnostic>();
-    blocks("CompressibleEuler").setClass<AdiabaticSolver>();
+    blocks("CompressibleEuler").setClass<AdiabaticKnp<DIMENSION>>();
 
     blocks("ZeroNeumannBoundary").setClass<ZeroNeumannBoundaryBlock>();
     blocks("WallBoundary").setClass<WallBoundaryBlock>();
