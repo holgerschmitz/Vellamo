@@ -25,7 +25,7 @@ INCLUDE = -I/usr/local/include -I$(HDFBASE)/include
 
 BUILD_DIR = build
 BIN_DIR = bin
-OBJECTS = $(addprefix $(BUILD_DIR)/,$(patsubst %.cpp,%.o,$(SOURCES)))
+FOLDERS = $(addprefix $(BUILD_DIR)/,$(patsubst %.cpp,%.o,$(notdir $(SOURCES))))
 
 LDFLAGS = -L$(HDFBASE)/lib -Wl,-rpath,$(HDFBASE)/lib
 
@@ -39,20 +39,27 @@ DIM3_FLAGS = -DHUERTO_THREE_DIM
 
 define PROGRAM_template =
  TARGET$(1)D_OBJS = $(addprefix $(BUILD_DIR)/$(1)d/,$(patsubst %.cpp,%.o,$(SOURCES)))
- $(BIN_DIR)/$(TARGET_BASE)$(1)d: $$(TARGET$(1)D_OBJS)
-	$(LINK) $^ -o $@ $(OFLAGS) $(LDFLAGS) $(LOADLIBS)
- $$(TARGET$(1)D_OBJS): $(BUILD_DIR)/$(1)d/%.o: %.cpp
+ $(BIN_DIR)/$(TARGET_BASE)$(1)d: folders $$(TARGET$(1)D_OBJS)
+	$(LINK) $$^ -o $$@ $(OFLAGS) $(LDFLAGS) $(LOADLIBS)
+ $$(TARGET$(1)D_OBJS): $(BUILD_DIR)/$(1)d/%.o: %.cpp 
 	$(CXX) -o $$@ -c $(CXXFLAGS) $(INCLUDE) $$(DIM$(1)_FLAGS) $$<
  FULLTARGET += $(BIN_DIR)/$(TARGET_BASE)$(1)d
- ALL_OBJS   += $$(TARGET_BASE$(1)D_OBJS)
+ ALL_OBJS   += $$(TARGET$(1)D_OBJS)
 endef
-
 
 $(foreach dimension,$(DIMENSIONS),$(eval $(call PROGRAM_template,$(dimension))))
 
-all: $(FULLTARGET)
+ALL_BUILD_FOLDERS = $(sort $(dir $(ALL_OBJS)))
 
+$(ALL_BUILD_FOLDERS):
+	mkdir -p $@ 
 
+folders: $(ALL_BUILD_FOLDERS)
+
+all: $(ALL_BUILD_FOLDERS) 
+#$(FULLTARGET)
+
+.PHONY: clean folders
 
 clean:
 	-rm -f $(ALL_OBJS) core $(FULLTARGET)
