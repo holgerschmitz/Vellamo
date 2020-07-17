@@ -6,6 +6,11 @@ OFLAGS  = -g -O0 -Wall
 
 DIMENSIONS = 1 2 3
 
+SOURCES = $(wildcard src/*.cpp) \
+  huerto/hydrodynamics/hydro_fields.cpp\
+  huerto/hydrodynamics/euler/adiabatic_knp.cpp
+
+
 # Set this to wherever your HDF5 installation resides
 # Make sure that this is compatible with your compiler below.
 HDFBASE = /usr/lib/x86_64-linux-gnu/hdf5/openmpi
@@ -20,9 +25,6 @@ INCLUDE = -I/usr/local/include -I$(HDFBASE)/include
 
 BUILD_DIR = build
 BIN_DIR = bin
-SOURCES = $(wildcard src/*.cpp) \
-  huerto/hydrodynamics/hydro_fields.cpp
-
 OBJECTS = $(addprefix $(BUILD_DIR)/,$(patsubst %.cpp,%.o,$(SOURCES)))
 
 LDFLAGS = -L$(HDFBASE)/lib -Wl,-rpath,$(HDFBASE)/lib

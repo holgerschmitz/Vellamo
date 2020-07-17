@@ -15,10 +15,9 @@
 class FieldDiagnostic : public schnek::HDFGridDiagnostic<Field, pField, schnek::DeltaTimeDiagnostic>
 {
   protected:
-    typedef HDFGridDiagnostic<Field, pField>::IndexType IndexType;
-    IndexType getGlobalMin();
-    IndexType getGlobalMax();
-    schnek::pHdfAttributes getAttributes();
+    Index getGlobalMin() override;
+    Index getGlobalMax() override;
+//    schnek::pHdfAttributes getAttributes();
 };
 
 
