@@ -12,12 +12,15 @@
 #include <schnek/diagnostic/diagnostic.hpp>
 #include <schnek/diagnostic/hdfdiagnostic.hpp>
 
-class FieldDiagnostic : public schnek::HDFGridDiagnostic<Field, pField, schnek::DeltaTimeDiagnostic>
+class FieldDiagnostic : public schnek::HDFGridDiagnostic<Field, pField, schnek::DeltaTimeDiagnostic>,
+                        public SimulationEntity
 {
   protected:
     Index getGlobalMin() override;
     Index getGlobalMax() override;
 //    schnek::pHdfAttributes getAttributes();
+  public:
+    void init() override;
 };
 
 

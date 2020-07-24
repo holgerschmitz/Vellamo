@@ -14,7 +14,13 @@ FieldDiagnostic::IndexType FieldDiagnostic::getGlobalMin()
 
 FieldDiagnostic::IndexType FieldDiagnostic::getGlobalMax()
 {
-  return Vellamo::getGlobalMax();
+  return getContext().getGridSize();
+}
+
+void FieldDiagnostic::init()
+{
+  SimulationEntity::init(this);
+  schnek::HDFGridDiagnostic<Field, pField, schnek::DeltaTimeDiagnostic>::init();
 }
 
 //schnek::pHdfAttributes FieldDiagnostic::getAttributes()

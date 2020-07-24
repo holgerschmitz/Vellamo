@@ -27,3 +27,14 @@
 *.exe
 *.out
 *.app
+/bin
+
+# IDE project settings
+.project
+.cproject
+.settings
+
+# Simulation Ouput
+*.h5
+information.tex
+references.bib

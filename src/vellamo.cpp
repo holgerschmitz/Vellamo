@@ -8,19 +8,19 @@
 #include "vellamo.hpp"
 #include "diagnostic.hpp"
 
-#include "hydro_fields.hpp"
-#include "solver.hpp"
+//#include "solver.hpp"
 // #include "euler_solver.hpp"
-#include "boundary.hpp"
+//#include "boundary.hpp"
 
 #include "../huerto/hydrodynamics/euler/adiabatic_knp.hpp"
+#include "../huerto/hydrodynamics/hydro_fields.hpp"
+#include "../huerto/boundary/boundary.hpp"
 
 #include <schnek/parser.hpp>
 #include <schnek/tools/literature.hpp>
 #include <schnek/util/logger.hpp>
 
 #include <boost/foreach.hpp>
-#include <boost/make_shared.hpp>
 #include <boost/optional.hpp>
 
 #include <mpi.h>
@@ -45,23 +45,17 @@ double box(double x, double xmin, double xmax)
   return ((x>=xmin)&&(x<xmax))?1.0:0.0;
 }
 
-Vellamo *Vellamo::instance;
-
 Vellamo::Vellamo()
 {
-  instance = this;
 }
 
 void Vellamo::initParameters(schnek::BlockParameters &parameters)
 {
+  SimulationContext::initParameters(parameters);
   parameters.addArrayParameter("N", gridSize, 100);
   parameters.addArrayParameter("L", size);
   parameters.addParameter("tMax", &tMax);
   parameters.addParameter("cflFactor", &cflFactor, 0.5);
-  x_parameters = parameters.addArrayParameter("", x, schnek::BlockParameters::readonly);
-
-  spaceVars = schnek::pParametersGroup(new schnek::ParametersGroup());
-  spaceVars->addArray(x_parameters);
 }
 
 
@@ -78,20 +72,24 @@ void Vellamo::initFields()
 
 void Vellamo::init()
 {
+  spaceVars = schnek::pParametersGroup(new schnek::ParametersGroup());
+  spaceVars->addArray(x_parameters);
+
   globalMax = gridSize-1;
 
-  subdivision.init(gridSize, 2);
+  subdivision = std::make_shared<schnek::MPICartSubdivision<Field> >();
+  subdivision->init(gridSize, 2);
 
   for (size_t i=0; i<DIMENSION; ++i)
   {
     dx[i] = size[i] / gridSize[i];
   }
 
-  Index low  = subdivision.getLo();
-  Index high = subdivision.getHi();
+  Index low  = subdivision->getLo();
+  Index high = subdivision->getHi();
 
-  Index lowIn  = subdivision.getInnerLo();
-  Index highIn = subdivision.getInnerHi();
+  Index lowIn  = subdivision->getInnerLo();
+  Index highIn = subdivision->getInnerHi();
 
   innerRange = Range(lowIn, highIn);
   initFields();
@@ -104,11 +102,11 @@ void Vellamo::execute()
   if (schnek::BlockContainer<Solver>::numChildren()==0)
     throw schnek::VariableNotFoundException("At least one Fluid Solver needs to be specified");
 
-  simulation_time = 0.0;
+  time = 0.0;
   timestep = 0;
-  schnek::DiagnosticManager::instance().setPhysicalTime(&simulation_time);
+  schnek::DiagnosticManager::instance().setPhysicalTime(&time);
 
-  while (simulation_time<=tMax)
+  while (time<=tMax)
   {
     schnek::DiagnosticManager::instance().execute();
 
@@ -121,15 +119,15 @@ void Vellamo::execute()
     dt = cflFactor*maxDt.get();
     dt = schnek::DiagnosticManager::instance().adjustDeltaT(dt);
 
-    if (subdivision.master())
-      schnek::Logger::instance().out() <<"Time "<< simulation_time << ",  dt "<< dt << std::endl;
+    if (subdivision->master())
+      schnek::Logger::instance().out() <<"Time "<< time << ",  dt "<< dt << std::endl;
 
     BOOST_FOREACH(pSolver f, schnek::BlockContainer<Solver>::childBlocks())
     {
       f->timeStep(dt);
     }
 
-    simulation_time += dt;
+    time += dt;
     ++timestep;
   }
 
@@ -149,8 +147,8 @@ int main (int argc, char** argv) {
     blocks("FieldDiag").setClass<FieldDiagnostic>();
     blocks("CompressibleEuler").setClass<AdiabaticKnp<DIMENSION>>();
 
-    blocks("ZeroNeumannBoundary").setClass<ZeroNeumannBoundaryBlock>();
-    blocks("WallBoundary").setClass<WallBoundaryBlock>();
+    blocks("ZeroNeumannBoundary").setClass<ZeroNeumannBoundaryBlock<Field, DIMENSION> >();
+//    blocks("WallBoundary").setClass<WallBoundaryBlock>();
 
     blocks("vellamo").addChildren("Fields")("FieldDiag")("CompressibleEuler");
     blocks("CompressibleEuler").addChildren("ZeroNeumannBoundary")("WallBoundary");

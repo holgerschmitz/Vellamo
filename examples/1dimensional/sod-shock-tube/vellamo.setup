@@ -13,7 +13,7 @@ Fields {
 }
 
 CompressibleEuler {
-  WallBoundary {
+  ZeroNeumannBoundary {
     low_x = 1;
     high_x = 1;
   }

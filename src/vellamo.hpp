@@ -10,42 +10,35 @@
 
 #include "../huerto/types.hpp"
 #include "../huerto/constants.hpp"
+#include "../huerto/hydrodynamics/hydro_fields.hpp"
 #include "../huerto/hydrodynamics/hydro_solver.hpp"
 #include "../huerto/hydrodynamics/euler/adiabatic_knp.hpp"
 
 #include <schnek/grid.hpp>
 #include <schnek/variables.hpp>
+#include <boost/shared_ptr.hpp>
 #include <boost/enable_shared_from_this.hpp>
 
 typedef AdiabaticKnp<DIMENSION> Knp;
+typedef HydroSolver<Knp::Field, Knp::dim> Solver;
+typedef boost::shared_ptr<Solver> pSolver;
 
 class Vellamo : public schnek::Block,
-                public schnek::BlockContainer<HydroSolver<Knp::Field, Knp::dim>>,
-                //public schnek::BlockContainer<HydroFields>,
-                public boost::enable_shared_from_this<Vellamo>
+                public schnek::BlockContainer<Solver>,
+                public schnek::BlockContainer<HydroFields>,
+                public boost::enable_shared_from_this<Vellamo>,
+                public SimulationContext
 {
   private:
-    static Vellamo *instance;
     Index globalMax;
-    Index gridSize;
-    Vector size;
-    Vector dx;
 
     double cflFactor;
-    double dt;
-    schnek::MPICartSubdivision<Field> subdivision;
 
-    Vector x;
-    schnek::Array<schnek::pParameter, DIMENSION> x_parameters;
     schnek::pParametersGroup spaceVars;
 
-    double tMax;
     Range innerRange;
 
     int timestep;
-
-    /// The global simulation time
-    double simulation_time;
   protected:
     void initParameters(schnek::BlockParameters &blockPars);
     void initFields();
@@ -54,14 +47,9 @@ class Vellamo : public schnek::Block,
     void init();
     void execute();
 
-    static Index getGlobalMax() { return instance->globalMax; }
-    static Vector getDx() { return instance->dx; }
-    static Vector getSize() { return instance->size; }
-    static double getT() { return instance->simulation_time; }
+    Index getGlobalMax() { return globalMax; }
 
-    static schnek::DomainSubdivision<Field> &getSubdivision() { return instance->subdivision; };
-    static Vector &getX() { return instance->x; }
-    static schnek::Array<schnek::pParameter, DIMENSION> &getXParameter() { return instance->x_parameters; }
+    schnek::Array<schnek::pParameter, DIMENSION> &getXParameter() { return x_parameters; }
 };
 
 #endif // VELLAMO_HPP_
