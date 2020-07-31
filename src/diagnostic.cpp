@@ -14,7 +14,7 @@ FieldDiagnostic::IndexType FieldDiagnostic::getGlobalMin()
 
 FieldDiagnostic::IndexType FieldDiagnostic::getGlobalMax()
 {
-  return getContext().getGridSize();
+  return getContext().getGridSize() - 1;
 }
 
 void FieldDiagnostic::init()

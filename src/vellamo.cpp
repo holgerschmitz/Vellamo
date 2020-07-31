@@ -29,7 +29,6 @@
 #include <string>
 #include <unistd.h>
 
-
 double step(double x, double x0)
 {
   return (x>=x0)?1.0:0.0;
@@ -75,8 +74,6 @@ void Vellamo::init()
   spaceVars = schnek::pParametersGroup(new schnek::ParametersGroup());
   spaceVars->addArray(x_parameters);
 
-  globalMax = gridSize-1;
-
   subdivision = std::make_shared<schnek::MPICartSubdivision<Field> >();
   subdivision->init(gridSize, 2);
 
@@ -97,26 +94,25 @@ void Vellamo::init()
 
 void Vellamo::execute()
 {
-  schnek::DiagnosticManager::instance().setTimeCounter(&timestep);
-
   if (schnek::BlockContainer<Solver>::numChildren()==0)
     throw schnek::VariableNotFoundException("At least one Fluid Solver needs to be specified");
 
   time = 0.0;
   timestep = 0;
+  schnek::DiagnosticManager::instance().setTimeCounter(&timestep);
   schnek::DiagnosticManager::instance().setPhysicalTime(&time);
 
   while (time<=tMax)
   {
     schnek::DiagnosticManager::instance().execute();
 
-    boost::optional<double> maxDt;
+    double maxDt = std::numeric_limits<double>::max();
     BOOST_FOREACH(pSolver f, schnek::BlockContainer<Solver>::childBlocks())
     {
-      maxDt = (maxDt)?std::min(maxDt.get(), f->maxDt()):f->maxDt();
+      maxDt = std::min(maxDt, f->maxDt());
     }
 
-    dt = cflFactor*maxDt.get();
+    dt = cflFactor*maxDt;
     dt = schnek::DiagnosticManager::instance().adjustDeltaT(dt);
 
     if (subdivision->master())

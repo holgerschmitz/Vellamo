@@ -30,8 +30,6 @@ class Vellamo : public schnek::Block,
                 public SimulationContext
 {
   private:
-    Index globalMax;
-
     double cflFactor;
 
     schnek::pParametersGroup spaceVars;
@@ -46,8 +44,6 @@ class Vellamo : public schnek::Block,
     Vellamo();
     void init();
     void execute();
-
-    Index getGlobalMax() { return globalMax; }
 
     schnek::Array<schnek::pParameter, DIMENSION> &getXParameter() { return x_parameters; }
 };
