@@ -1,6 +1,6 @@
 # Vellamo
 
-Vellamo is a simple fluid code based on the Schnek library and making use of the Huerto algorithm repository.
+Vellamo is a simple fluid code based on the [Schnek](https://github.com/holgerschmitz/Schnek) library and making use of the Huerto algorithm repository.
 
 ## Installation
 
@@ -11,8 +11,8 @@ Vellamo has currently been tested on Linux only.
 You need
 * C++ compiler
 * MPI, both mpich or Open MPI have been tested
-* HDF5, build with MPI support to allow parallel file output
-* Schnek build with MPI and HDF5
+* [HDF5](https://www.hdfgroup.org/solutions/hdf5), built with MPI support to allow parallel file output
+* [Schnek](https://github.com/holgerschmitz/Schnek) built with MPI and HDF5
 
 ### Obtaining and Building the Code
 
