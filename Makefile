@@ -1,7 +1,7 @@
 
 TARGET_BASE = vellamo
-OFLAGS  = -g -O0 -Wall -std=c++11
-#OFLAGS  = -O3 -Wall
+#OFLAGS  = -g -O0 -Wall -std=c++11
+OFLAGS  = -O3 -Wall -std=c++11
 
 
 DIMENSIONS = 1 2 3
