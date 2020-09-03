@@ -134,6 +134,8 @@ int main (int argc, char** argv) {
 
   MPI_Init(&argc, &argv);
 
+  static const int modelDim = AdiabaticKnpModel<DIMENSION>::dim;
+
   try
   {
     schnek::BlockClasses blocks;
@@ -143,7 +145,7 @@ int main (int argc, char** argv) {
     blocks("FieldDiag").setClass<FieldDiagnostic>();
     blocks("CompressibleEuler").setClass<AdiabaticKnp<DIMENSION>>();
 
-    blocks("ZeroNeumannBoundary").setClass<ZeroNeumannBoundaryBlock<Field, DIMENSION> >();
+    blocks("ZeroNeumannBoundary").setClass<ZeroNeumannBoundaryBlock<Field, modelDim> >();
 //    blocks("WallBoundary").setClass<WallBoundaryBlock>();
 
     blocks("vellamo").addChildren("Fields")("FieldDiag")("CompressibleEuler");
