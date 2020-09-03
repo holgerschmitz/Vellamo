@@ -37,5 +37,7 @@
 # Simulation Ouput
 *.h5
 *.vtk
+*.png
+*.mp4
 information.tex
 references.bib
