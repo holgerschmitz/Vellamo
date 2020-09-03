@@ -36,5 +36,6 @@
 
 # Simulation Ouput
 *.h5
+*.vtk
 information.tex
 references.bib
