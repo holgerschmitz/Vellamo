@@ -1,0 +1,62 @@
+Nx = 400;
+Ny = 400;
+Nz = 400;
+
+Lx = 4.0;
+Ly = 4.0;
+Lz = 4.0;
+
+tMax = 1.0;
+cflFactor = 0.5;
+
+float adiabaticGamma = 1.4;
+
+Fields {
+  float E1 = 1.0;
+  float E2 = 100.0;
+
+  float xm = x - 0.5*Lx;
+  float ym = y - 0.5*Ly;
+  float zm = z - 0.5*Lz;
+  float r2 = xm*xm + ym*ym + zm*zm;
+
+  Rho = 1.0;
+  Mx = 0.0;
+  E =  step(r2, 0.01)*E1 + stepi(r2,0.01)*E2;
+}
+
+CompressibleEuler euler {
+  gamma = adiabaticGamma;
+
+  ZeroNeumannBoundary {
+    low_x = 1;
+    low_y = 1;
+    low_z = 1;
+    high_x = 1;
+    high_y = 1;
+    high_z = 1;
+  }
+}
+
+float outDt = 1e-3;
+
+FieldDiag Rho {
+  file = "Rho_#t.h5";
+  field = "Rho";
+  deltaTime = outDt;
+  append = 0;
+}
+
+FieldDiag Mx {
+  file = "Mx_#t.h5";
+  field = "Mx";
+  deltaTime = outDt;
+  append = 0;
+}
+
+FieldDiag E {
+  file = "E_#t.h5";
+  field = "E";
+  deltaTime = outDt;
+  append = 0;
+}
