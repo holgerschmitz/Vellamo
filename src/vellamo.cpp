@@ -8,13 +8,11 @@
 #include "vellamo.hpp"
 #include "diagnostic.hpp"
 
-//#include "solver.hpp"
-// #include "euler_solver.hpp"
-//#include "boundary.hpp"
-
+#include "../huerto/hydrodynamics/euler/euler_knp.hpp"
 #include "../huerto/hydrodynamics/euler/adiabatic_knp.hpp"
 #include "../huerto/hydrodynamics/hydro_fields.hpp"
 #include "../huerto/boundary/boundary.hpp"
+#include "../huerto/constants.hpp"
 
 #include <schnek/parser.hpp>
 #include <schnek/tools/literature.hpp>
@@ -55,6 +53,7 @@ void Vellamo::initParameters(schnek::BlockParameters &parameters)
   parameters.addArrayParameter("L", size);
   parameters.addParameter("tMax", &tMax);
   parameters.addParameter("cflFactor", &cflFactor, 0.5);
+  initConstantParameters(parameters);
 }
 
 
@@ -94,7 +93,7 @@ void Vellamo::init()
 
 void Vellamo::execute()
 {
-  if (schnek::BlockContainer<Solver>::numChildren()==0)
+  if (schnek::BlockContainer<HydroSolver>::numChildren()==0)
     throw schnek::VariableNotFoundException("At least one Fluid Solver needs to be specified");
 
   time = 0.0;
@@ -107,7 +106,7 @@ void Vellamo::execute()
     schnek::DiagnosticManager::instance().execute();
 
     double maxDt = std::numeric_limits<double>::max();
-    BOOST_FOREACH(pSolver f, schnek::BlockContainer<Solver>::childBlocks())
+    for(pHydroSolver f: schnek::BlockContainer<HydroSolver>::childBlocks())
     {
       maxDt = std::min(maxDt, f->maxDt());
     }
@@ -118,7 +117,7 @@ void Vellamo::execute()
     if (subdivision->master())
       schnek::Logger::instance().out() <<"Time "<< time << ",  dt "<< dt << std::endl;
 
-    BOOST_FOREACH(pSolver f, schnek::BlockContainer<Solver>::childBlocks())
+    for(pHydroSolver f: schnek::BlockContainer<HydroSolver>::childBlocks())
     {
       f->timeStep(dt);
     }
@@ -134,7 +133,8 @@ int main (int argc, char** argv) {
 
   MPI_Init(&argc, &argv);
 
-  static const int modelDim = AdiabaticKnpModel<DIMENSION>::dim;
+  static const int eulerModelDim = EulerKnp<DIMENSION>::dim;
+  static const int adiabaticModelDim = AdiabaticKnp<DIMENSION>::dim;
 
   try
   {
@@ -143,13 +143,16 @@ int main (int argc, char** argv) {
     blocks.registerBlock("vellamo").setClass<Vellamo>();
     blocks("Fields").setClass<HydroFields>();
     blocks("FieldDiag").setClass<FieldDiagnostic>();
-    blocks("CompressibleEuler").setClass<AdiabaticKnp<DIMENSION>>();
+    blocks("CompressibleEuler").setClass<EulerKnp<DIMENSION>>();
+    blocks("Adiabatic").setClass<AdiabaticKnp<DIMENSION>>();
 
-    blocks("ZeroNeumannBoundary").setClass<ZeroNeumannBoundaryBlock<Field, modelDim> >();
+    blocks("ZeroNeumannBoundaryEuler").setClass<ZeroNeumannBoundaryBlock<Field, eulerModelDim> >();
+    blocks("ZeroNeumannBoundaryAdiabatic").setClass<ZeroNeumannBoundaryBlock<Field, adiabaticModelDim> >();
 //    blocks("WallBoundary").setClass<WallBoundaryBlock>();
 
-    blocks("vellamo").addChildren("Fields")("FieldDiag")("CompressibleEuler");
-    blocks("CompressibleEuler").addChildren("ZeroNeumannBoundary")("WallBoundary");
+    blocks("vellamo").addChildren("Fields")("FieldDiag")("CompressibleEuler")("Adiabatic");
+    blocks("CompressibleEuler").addChildren("ZeroNeumannBoundaryEuler")("WallBoundary");
+    blocks("Adiabatic").addChildren("ZeroNeumannBoundaryAdiabatic");
 
 
     std::ifstream in("vellamo.setup");

@@ -12,18 +12,16 @@ Fields {
   float rho2 = 0.125;
   float p1 = 1.0;
   float p2 = 0.1;
-  float E1 = p1/(adiabaticGamma - 1);
-  float E2 = p2/(adiabaticGamma - 1);
 
   Rho = stepi(x,0.5)*rho1 + step(x,0.5)*rho2;
   Mx = 0.0;
-  E =  stepi(x,0.5)*E1 + step(x,0.5)*E2;
 }
 
-CompressibleEuler euler {
+Adiabatic euler {
   gamma = adiabaticGamma;
+  p0 = 1.0;
 
-  ZeroNeumannBoundaryEuler {
+  ZeroNeumannBoundaryAdiabatic {
     low_x = 1;
     high_x = 1;
   }

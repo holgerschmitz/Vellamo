@@ -1,0 +1,39 @@
+Nx = 1000;
+
+Lx = 5.0;
+
+tMax = 5;
+cflFactor = 0.5;
+
+float adiabaticGamma = 1.4;
+
+Fields {
+  float rho0 = 1.0;
+  float rho1 = 0.001;
+  float cs = sqrt(adiabaticGamma*rho0);
+  float m1 = cs*rho1;
+
+  Rho = rho0 + rho1*sin(2*pi*x);
+  Mx = m1*sin(2*pi*x);
+}
+
+Adiabatic euler {
+  gamma = adiabaticGamma;
+  p0 = 1.0;
+}
+
+float outDt = 5e-2;
+
+FieldDiag Rho {
+  file = "Rho_#t.h5";
+  field = "Rho";
+  deltaTime = outDt;
+  append = 0;
+}
+
+FieldDiag Mx {
+  file = "Mx_#t.h5";
+  field = "Mx";
+  deltaTime = outDt;
+  append = 0;
+}

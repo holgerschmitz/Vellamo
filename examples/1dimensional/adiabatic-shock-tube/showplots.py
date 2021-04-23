@@ -5,6 +5,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 
+gamma = 1.4
+
 for time in range(0,201):
   print('Time: '+ str(time))
   extStr = '_' + str(time ) + '.h5'
@@ -20,7 +22,7 @@ for time in range(0,201):
   x = np.arange(rho.shape[0]) / rho.shape[0]
 
   vx = mx/rho
-  pressure = (eng - 0.5*mx*vx)/0.4
+  pressure = rho**gamma
   temp = pressure/rho
 
   plt.figure(figsize=(16,9))
@@ -36,7 +38,7 @@ for time in range(0,201):
   lnMx = plt.plot(x, temp, 'k-')
   axes = plt.gca()
   plt.xlim(0, 1)
-  plt.ylim(3.8, 8)
+  plt.ylim(0, 1.05)
   axes.set_ylabel('$T$', fontsize=20)
   axes.tick_params(axis='both', which='major', labelsize=14)
 
@@ -60,7 +62,7 @@ for time in range(0,201):
   lnE = plt.plot(x, eng, 'k-')
   axes = plt.gca()
   plt.xlim(0, 1)
-  plt.ylim(0, 2.7)
+  plt.ylim(0, 2.1)
   axes.set_xlabel('$x$', fontsize=20)
   axes.set_ylabel('$E$', fontsize=20)
   axes.tick_params(axis='both', which='major', labelsize=14)
@@ -69,7 +71,7 @@ for time in range(0,201):
   lnMx = plt.plot(x, pressure, 'k-')
   axes = plt.gca()
   plt.xlim(0, 1)
-  plt.ylim(0, 7)
+  plt.ylim(0, 1.05)
   axes.set_ylabel('$p$', fontsize=20)
   axes.tick_params(axis='both', which='major', labelsize=14)
 
