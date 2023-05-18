@@ -61,7 +61,7 @@ void Vellamo::initFields()
 {
   if (schnek::BlockContainer<HydroFields>::childBlocks().empty())
   {
-    boost::shared_ptr<HydroFields> fields(new HydroFields(shared_from_this()));
+    std::shared_ptr<HydroFields> fields(new HydroFields(shared_from_this()));
     Block::addChild(fields);
     fields->registerData();
     fields->preInit();

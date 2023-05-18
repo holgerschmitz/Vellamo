@@ -1,0 +1,62 @@
+Nx = 1600;
+Ny = 800;
+
+Lx = 2.0;
+Ly = 1.0;
+
+tMax = 1;
+cflFactor = 0.5;
+
+
+float xc = (x - Lx/5)/2;
+float yc = y - Ly/2;
+
+float r2 = xc*xc + yc*yc;
+float r = sqrt(r2);
+float phi = atan2(yc, xc);
+float R = 0.1 + 2e-3*sin(3*phi) + 1e-3*sin(4*phi);
+
+Rho = 0.1 + 0.9*exp(-r2/(R*R)); // 1.0*stepi(r,R) + 0.1*step(r,R);
+Mx = 1.0*exp(-r2/(R*R)); //1.0*stepi(r,R); 
+My = 0.0;
+
+E =  1.0; //25.0*stepi(r,R) +  1.0*step(r,R);
+
+CompressibleEuler {
+  WallBoundary {
+    low_x = 1;
+    high_x = 1;
+    low_y = 1;
+    high_y = 1;
+  }
+}
+
+int outsteps = 10;
+
+FieldDiag Rho {
+  file = "Rho_#t.h5";
+  field = "Rho";
+  interval = outsteps;
+  append = 0;
+}
+
+FieldDiag Mx {
+  file = "Mx_#t.h5";
+  field = "Mx";
+  interval = outsteps;
+  append = 0;
+}
+
+FieldDiag My {
+  file = "My_#t.h5";
+  field = "My";
+  interval = outsteps;
+  append = 0;
+}
+
+FieldDiag E {
+  file = "E_#t.h5";
+  field = "E";
+  interval = outsteps;
+  append = 0;
+}

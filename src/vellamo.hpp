@@ -17,13 +17,13 @@
 
 #include <schnek/grid.hpp>
 #include <schnek/variables.hpp>
-#include <boost/shared_ptr.hpp>
-#include <boost/enable_shared_from_this.hpp>
+
+#include <memory>
 
 class Vellamo : public schnek::Block,
                 public schnek::BlockContainer<HydroSolver>,
                 public schnek::BlockContainer<HydroFields>,
-                public boost::enable_shared_from_this<Vellamo>,
+                public std::enable_shared_from_this<Vellamo>,
                 public SimulationContext
 {
   private:
