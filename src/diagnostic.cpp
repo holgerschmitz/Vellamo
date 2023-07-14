@@ -20,7 +20,7 @@ FieldDiagnostic::IndexType FieldDiagnostic::getGlobalMax()
 void FieldDiagnostic::init()
 {
   SimulationEntity::init(this);
-  schnek::HDFGridDiagnostic<Field, pField, schnek::DeltaTimeDiagnostic>::init();
+  schnek::HDFGridDiagnostic<Field, schnek::DeltaTimeDiagnostic>::init();
 }
 
 //schnek::pHdfAttributes FieldDiagnostic::getAttributes()

@@ -12,7 +12,7 @@
 #include <schnek/diagnostic/diagnostic.hpp>
 #include <schnek/diagnostic/hdfdiagnostic.hpp>
 
-class FieldDiagnostic : public schnek::HDFGridDiagnostic<Field, pField, schnek::DeltaTimeDiagnostic>,
+class FieldDiagnostic : public schnek::HDFGridDiagnostic<Field, schnek::DeltaTimeDiagnostic>,
                         public SimulationEntity
 {
   protected:
